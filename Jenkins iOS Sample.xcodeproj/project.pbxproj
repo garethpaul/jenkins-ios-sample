@@ -13,6 +13,8 @@
 		88C69EBC1B03CD1F001A9C82 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 88C69EBB1B03CD1F001A9C82 /* Images.xcassets */; };
 		88C69EBF1B03CD1F001A9C82 /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 88C69EBD1B03CD1F001A9C82 /* LaunchScreen.xib */; };
 		88C69ECB1B03CD20001A9C82 /* Jenkins_iOS_SampleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88C69ECA1B03CD20001A9C82 /* Jenkins_iOS_SampleTests.swift */; };
+		88C69ED71B03DE77001A9C82 /* Fabric.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 88C69ED51B03DE77001A9C82 /* Fabric.framework */; };
+		88C69ED81B03DE77001A9C82 /* Crashlytics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 88C69ED61B03DE77001A9C82 /* Crashlytics.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +38,8 @@
 		88C69EC41B03CD20001A9C82 /* Jenkins iOS SampleTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Jenkins iOS SampleTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		88C69EC91B03CD20001A9C82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		88C69ECA1B03CD20001A9C82 /* Jenkins_iOS_SampleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Jenkins_iOS_SampleTests.swift; sourceTree = "<group>"; };
+		88C69ED51B03DE77001A9C82 /* Fabric.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Fabric.framework; sourceTree = "<group>"; };
+		88C69ED61B03DE77001A9C82 /* Crashlytics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Crashlytics.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -43,6 +47,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				88C69ED81B03DE77001A9C82 /* Crashlytics.framework in Frameworks */,
+				88C69ED71B03DE77001A9C82 /* Fabric.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,6 +65,8 @@
 		88C69EA61B03CD1F001A9C82 = {
 			isa = PBXGroup;
 			children = (
+				88C69ED51B03DE77001A9C82 /* Fabric.framework */,
+				88C69ED61B03DE77001A9C82 /* Crashlytics.framework */,
 				88C69EB11B03CD1F001A9C82 /* Jenkins iOS Sample */,
 				88C69EC71B03CD20001A9C82 /* Jenkins iOS SampleTests */,
 				88C69EB01B03CD1F001A9C82 /* Products */,
@@ -122,6 +130,7 @@
 				88C69EAB1B03CD1F001A9C82 /* Sources */,
 				88C69EAC1B03CD1F001A9C82 /* Frameworks */,
 				88C69EAD1B03CD1F001A9C82 /* Resources */,
+				88C69ED41B03DE6B001A9C82 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -207,6 +216,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		88C69ED41B03DE6B001A9C82 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "./Fabric.framework/run abb870ac2c6cd77fc0a3ee166f786a86748f4eb9 47d331d25396fd56e08c5c5891c16a003ba5647e584bf8fc07feb0e8ae92ab92";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		88C69EAB1B03CD1F001A9C82 /* Sources */ = {
@@ -345,6 +370,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = "Jenkins iOS Sample/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -358,6 +387,10 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = "Jenkins iOS Sample/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_NAME = "$(TARGET_NAME)";
