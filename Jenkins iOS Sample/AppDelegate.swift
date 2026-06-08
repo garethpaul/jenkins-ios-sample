@@ -18,9 +18,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
         // Override point for customization after application launch.
-        Fabric.with([Crashlytics()])
+        if hasConfiguredFabricAPIKey() {
+            Fabric.with([Crashlytics()])
+        }
 
         return true
+    }
+
+    func hasConfiguredFabricAPIKey() -> Bool {
+        if let fabric = NSBundle.mainBundle().objectForInfoDictionaryKey("Fabric") as? NSDictionary,
+            apiKey = fabric["APIKey"] as? String {
+                return apiKey.characters.count > 0 && !apiKey.hasPrefix("$(") && apiKey != "YOUR_FABRIC_API_KEY"
+        }
+
+        return false
     }
 
     func applicationWillResignActive(application: UIApplication) {
@@ -47,4 +58,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 }
-

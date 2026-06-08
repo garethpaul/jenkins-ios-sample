@@ -25,6 +25,7 @@ Priority:
 - Keep Fabric/Crashlytics framework assumptions visible
 - Avoid committing CI secrets, signing material, or crash-reporting credentials
 - Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
+- Skip runtime Fabric initialization when the plist contains a placeholder API key
 - Maintain security policy for the sample
 
 Next priorities:
@@ -41,6 +42,7 @@ Contribution rules:
 - Keep credentials and provisioning profiles out of git.
 - Run `make check` before pushing source, plist, project, CI-secret, or security documentation changes.
 - Verify the Xcode project or CI command after build changes.
+- Preserve the runtime placeholder API key guard around Fabric startup.
 - Preserve sample simplicity over production pipeline complexity.
 
 ## Security

@@ -112,6 +112,7 @@ def check_required_files():
         "SECURITY.md",
         "VISION.md",
         "docs/plans/2026-06-08-jenkins-ios-baseline.md",
+        "docs/plans/2026-06-08-runtime-fabric-placeholder-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -182,6 +183,12 @@ def check_swift_and_secret_guardrails():
     source = "\n".join(strip_swift_comments(path.read_text(encoding="utf-8")) for path in swift_paths)
 
     expect("Fabric.with([Crashlytics()])" in source, "AppDelegate should initialize Fabric/Crashlytics")
+    expect("if hasConfiguredFabricAPIKey()" in source, "AppDelegate should guard Fabric initialization with configured API key check")
+    expect("func hasConfiguredFabricAPIKey() -> Bool" in source, "AppDelegate should keep the Fabric API key check explicit")
+    expect("objectForInfoDictionaryKey(\"Fabric\")" in source and "apiKey.characters.count > 0" in source,
+           "AppDelegate should inspect the Fabric API key from Info.plist")
+    expect("!apiKey.hasPrefix(\"$(\")" in source and "apiKey != \"YOUR_FABRIC_API_KEY\"" in source,
+           "AppDelegate should reject unresolved Fabric API key placeholders")
     expect("Crashlytics.sharedInstance().crash()" not in source, "sample should not include forced crash behavior")
     expect(not re.search(r"\b(?:print|println|NSLog)\s*\(", source), "first-party Swift should not add console logging")
 
@@ -214,6 +221,7 @@ def check_docs():
     security = read_text("SECURITY.md")
     changes = read_text("CHANGES.md")
     plan = read_text("docs/plans/2026-06-08-jenkins-ios-baseline.md")
+    runtime_plan = read_text("docs/plans/2026-06-08-runtime-fabric-placeholder-guard.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -230,9 +238,13 @@ def check_docs():
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("xcshareddata/xcschemes" in readme or "shared" in readme.lower(), "README should document the shared CI scheme")
     expect("FABRIC_API_KEY" in readme and "CRASHLYTICS_BUILD_SECRET" in readme, "README should document required build settings")
+    expect("placeholder API key" in readme and "placeholder API key" in vision and "placeholder API key" in security,
+           "docs should describe the runtime Fabric placeholder guard")
     expect("Twitter" not in readme, "README should not describe this Crashlytics sample as Twitter configuration")
     expect("placeholders" in changes.lower(), "CHANGES should mention placeholders")
+    expect("runtime Fabric initialization" in changes, "CHANGES should mention runtime Fabric initialization guarding")
     expect("status: completed" in plan, "baseline plan should be marked completed")
+    expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
