@@ -7,6 +7,7 @@ import json
 import plistlib
 import re
 import shutil
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -70,6 +71,15 @@ def parse_plist(path):
         return None
 
 
+def tracked_paths():
+    try:
+        output = subprocess.check_output(["git", "ls-files"], cwd=str(ROOT), universal_newlines=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        FAILURES.append("unable to inspect tracked files: {}".format(exc))
+        return []
+    return [line.strip() for line in output.splitlines() if line.strip()]
+
+
 def strip_swift_comments(text):
     lines = []
     for line in text.splitlines():
@@ -87,6 +97,7 @@ def check_required_files():
         "Fabric.framework/Headers/Fabric.h",
         "Jenkins iOS Sample.xcodeproj/project.pbxproj",
         "Jenkins iOS Sample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+        "Jenkins iOS Sample.xcodeproj/xcshareddata/xcschemes/Jenkins iOS Sample.xcscheme",
         "Jenkins iOS Sample/AppDelegate.swift",
         "Jenkins iOS Sample/Base.lproj/LaunchScreen.xib",
         "Jenkins iOS Sample/Base.lproj/Main.storyboard",
@@ -112,6 +123,7 @@ def check_required_files():
 def check_parsable_resources():
     parse_xml("docs/readme-overview.svg")
     parse_xml("Jenkins iOS Sample.xcodeproj/project.xcworkspace/contents.xcworkspacedata")
+    parse_xml("Jenkins iOS Sample.xcodeproj/xcshareddata/xcschemes/Jenkins iOS Sample.xcscheme")
     parse_xml("Jenkins iOS Sample/Base.lproj/Main.storyboard")
     parse_xml("Jenkins iOS Sample/Base.lproj/LaunchScreen.xib")
 
@@ -142,6 +154,7 @@ def check_parsable_resources():
 
 def check_project_wiring():
     pbxproj = read_text("Jenkins iOS Sample.xcodeproj/project.pbxproj")
+    scheme = read_text("Jenkins iOS Sample.xcodeproj/xcshareddata/xcschemes/Jenkins iOS Sample.xcscheme")
 
     for framework in ("Fabric.framework", "Crashlytics.framework"):
         expect(framework in pbxproj, "{} should remain referenced in the Xcode project".format(framework))
@@ -158,6 +171,10 @@ def check_project_wiring():
     expect("$CRASHLYTICS_BUILD_SECRET" in pbxproj, "Fabric run script should use CRASHLYTICS_BUILD_SECRET")
     expect("Skipping Fabric run script" in pbxproj, "Fabric run script should skip when secrets are absent")
     expect(not re.search(r"Fabric\.framework/run\s+[0-9a-f]{40}\s+[0-9a-f]{64}", pbxproj), "Fabric run script should not commit raw key material")
+    expect("Jenkins iOS SampleTests.xctest" in scheme, "shared Xcode scheme should include the test target")
+
+    tracked_xcuserdata = [path for path in tracked_paths() if "/xcuserdata/" in path]
+    expect(not tracked_xcuserdata, "tracked xcuserdata should be moved to xcshareddata: {}".format(", ".join(tracked_xcuserdata)))
 
 
 def check_swift_and_secret_guardrails():
@@ -211,6 +228,7 @@ def check_docs():
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
 
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
+    expect("xcshareddata/xcschemes" in readme or "shared" in readme.lower(), "README should document the shared CI scheme")
     expect("FABRIC_API_KEY" in readme and "CRASHLYTICS_BUILD_SECRET" in readme, "README should document required build settings")
     expect("Twitter" not in readme, "README should not describe this Crashlytics sample as Twitter configuration")
     expect("placeholders" in changes.lower(), "CHANGES should mention placeholders")

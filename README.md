@@ -55,6 +55,9 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 
 - Open `Jenkins iOS Sample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The app initializes Fabric with Crashlytics. If the required build settings are missing, the Fabric run script skips instead of using committed credentials.
+- The Xcode scheme is shared under `xcshareddata/xcschemes` so Jenkins and
+  command-line `xcodebuild` can discover it without developer-specific
+  `xcuserdata`.
 
 ## Testing and Verification
 

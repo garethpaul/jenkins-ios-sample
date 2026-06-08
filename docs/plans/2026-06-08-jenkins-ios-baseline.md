@@ -15,6 +15,7 @@ or local build settings.
 - Keep Fabric/Crashlytics configuration visible without committing real keys or build secrets.
 - Make the Fabric run script safe for local static checks when CI secrets are absent.
 - Keep local xcconfig, env files, generated Xcode state, signing material, and CI secrets out of git.
+- Move the Jenkins-discoverable Xcode scheme into shared project data instead of tracked `xcuserdata`.
 - Add a reproducible `make check` baseline for project metadata, plist/storyboard/asset parsing, source guardrails, framework wiring, and documentation.
 
 ## Verification

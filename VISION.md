@@ -15,7 +15,7 @@ its CI assumptions.
 Current baseline: `make check` runs `scripts/check-baseline.py` to verify the
 legacy Xcode project shape, Fabric/Crashlytics framework wiring, placeholder
 build settings, CI secret boundaries, committed plist/storyboard/asset parsing,
-and documentation.
+shared scheme placement, and documentation.
 
 The current focus is:
 
@@ -33,6 +33,7 @@ Next priorities:
 - Move any CI-specific values into documented environment configuration
 - Modernize Fabric/Crashlytics dependencies only in a dedicated pass
 - Add or refresh build scripts for repeatable CI verification
+- Keep the CI scheme in `xcshareddata/xcschemes`, not tracked `xcuserdata`
 
 Contribution rules:
 
