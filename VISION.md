@@ -38,7 +38,6 @@ Canonical security policy and reporting:
 
 - [`SECURITY.md`](SECURITY.md)
 
-
 CI pipelines can leak signing keys, provisioning profiles, and service tokens.
 Those values must stay in CI secret storage or local keychains, never in source.
 
