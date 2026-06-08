@@ -12,6 +12,11 @@ framework integrations, tests, and security policy.
 The goal is to keep the sample buildable and credential-safe while documenting
 its CI assumptions.
 
+Current baseline: `make check` runs `scripts/check-baseline.py` to verify the
+legacy Xcode project shape, Fabric/Crashlytics framework wiring, placeholder
+build settings, CI secret boundaries, committed plist/storyboard/asset parsing,
+and documentation.
+
 The current focus is:
 
 Priority:
@@ -19,6 +24,7 @@ Priority:
 - Preserve the minimal app and test project structure
 - Keep Fabric/Crashlytics framework assumptions visible
 - Avoid committing CI secrets, signing material, or crash-reporting credentials
+- Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
 - Maintain security policy for the sample
 
 Next priorities:
@@ -32,6 +38,7 @@ Contribution rules:
 
 - One PR = one focused CI, build, dependency, or documentation change.
 - Keep credentials and provisioning profiles out of git.
+- Run `make check` before pushing source, plist, project, CI-secret, or security documentation changes.
 - Verify the Xcode project or CI command after build changes.
 - Preserve sample simplicity over production pipeline complexity.
 
@@ -45,6 +52,7 @@ CI pipelines can leak signing keys, provisioning profiles, and service tokens.
 Those values must stay in CI secret storage or local keychains, never in source.
 
 Crash-reporting credentials should remain local or platform-managed.
+The sample should not require committed Fabric or Crashlytics values to pass static checks.
 
 ## What We Will Not Merge (For Now)
 

@@ -16,6 +16,9 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `Jenkins iOS Sample` - source or example code
 - `Jenkins iOS Sample.xcodeproj` - Xcode project file
 - `Jenkins iOS SampleTests` - source or example code
+- `CHANGES.md` - recent maintenance changes
+- `Makefile` - local static verification entry point
+- `scripts/check-baseline.py` - static Fabric/Crashlytics baseline checks
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
 
@@ -23,7 +26,7 @@ Additional scan context:
 
 - Source directories: Crashlytics.framework, Fabric.framework, Jenkins iOS Sample, Jenkins iOS Sample.xcodeproj, Jenkins iOS SampleTests
 - Dependency and build manifests: none detected
-- Entry points or build surfaces: Jenkins iOS Sample.xcodeproj
+- Entry points or build surfaces: `make check`, Jenkins iOS Sample.xcodeproj
 - Test-looking files: Jenkins iOS SampleTests/Info.plist, Jenkins iOS SampleTests/Jenkins_iOS_SampleTests.swift
 
 ## Getting Started
@@ -31,6 +34,7 @@ Additional scan context:
 ### Prerequisites
 
 - Git
+- Python 3 for static verification with `make check`
 - macOS with Xcode for building Apple platform projects
 
 ### Setup
@@ -38,27 +42,36 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/jenkins-ios-sample.git
 cd jenkins-ios-sample
+make check
 ```
 
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
 
+For CI or local Xcode builds that run Fabric, provide `FABRIC_API_KEY` and
+`CRASHLYTICS_BUILD_SECRET` through CI secrets, xcodebuild settings, or a local
+ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
+
 ## Running or Using the Project
 
 - Open `Jenkins iOS Sample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
+- The app initializes Fabric with Crashlytics. If the required build settings are missing, the Fabric run script skips instead of using committed credentials.
 
 ## Testing and Verification
 
+- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, and CI secret documentation.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
 ## Configuration and Secrets
 
-- Detected references to Twitter. Keep API keys, OAuth credentials, tokens, and account-specific values in local configuration only.
+- Fabric and Crashlytics values belong in CI secret storage, local keychains, xcodebuild settings, or ignored local configuration only.
+- Do not commit Fabric API keys, Crashlytics build secrets, signing identities, provisioning profiles, `.env` files, or local xcconfig files.
 
 ## Security and Privacy Notes
 
 - Review changes touching authentication or token handling; examples from the scan include Crashlytics.framework/Headers/CLSLogging.h, Crashlytics.framework/Headers/CLSReport.h.
+- Review changes touching `FABRIC_API_KEY`, `CRASHLYTICS_BUILD_SECRET`, signing, provisioning, or the Fabric run script as CI-secret changes.
 - Review changes touching external API calls or credential-adjacent configuration; examples from the scan include Crashlytics.framework/Headers/Crashlytics.h, Crashlytics.framework/Info.plist, Fabric.framework/Headers/FABAttributes.h, Fabric.framework/Headers/Fabric.h, and 2 more.
 - Review changes touching network requests, sockets, or service endpoints; examples from the scan include Crashlytics.framework/Headers/Crashlytics.h, Crashlytics.framework/Info.plist, Fabric.framework/Info.plist, Jenkins iOS Sample/Info.plist, and 2 more.
 - Review changes touching mobile permissions or privacy-sensitive device data; examples from the scan include Crashlytics.framework/Headers/Crashlytics.h.
@@ -67,6 +80,7 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Maintenance Notes
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
+- Run `make check` before pushing Swift, plist, project, framework-reference, CI-secret, or documentation changes.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 

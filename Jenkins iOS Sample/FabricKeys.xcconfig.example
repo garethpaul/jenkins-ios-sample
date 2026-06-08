@@ -1,0 +1,3 @@
+// Copy to a local, ignored xcconfig or pass these as xcodebuild settings in CI.
+FABRIC_API_KEY = YOUR_FABRIC_API_KEY
+CRASHLYTICS_BUILD_SECRET = YOUR_CRASHLYTICS_BUILD_SECRET

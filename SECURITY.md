@@ -25,6 +25,9 @@ Helpful reports include:
 ## Project Security Posture
 
 - This repository appears to be an Apple platform application or Swift sample. The active security scope is the code and documentation on the default branch.
+- Fabric and Crashlytics configuration is sensitive. `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` must come from CI secrets, xcodebuild settings, local keychains, or ignored local configuration, not committed source.
+- Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
+- Run `make check` after changing Swift sources, plists, Xcode project metadata, Fabric/Crashlytics framework references, CI secret handling, or security docs.
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
 - Review found external API integrations or credential-adjacent configuration; changes in those areas should receive security-focused review before merge.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.

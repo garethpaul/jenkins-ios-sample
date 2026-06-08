@@ -16,6 +16,13 @@ DerivedData
 *.hmap
 *.ipa
 *.xcuserstate
+*.local.xcconfig
+*.secrets.xcconfig
+FabricKeys.xcconfig
+.env
+.env.*
+__pycache__/
+*.pyc
 
 # CocoaPods
 #
