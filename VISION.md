@@ -45,3 +45,6 @@ Crash-reporting credentials should remain local or platform-managed.
 - Fabric/Crashlytics credentials in source
 - Broad CI rewrites without a reproducible command
 - Generated build artifacts
+
+This list is a roadmap guardrail, not a permanent rule.
+Strong user demand and strong technical rationale can change it.
