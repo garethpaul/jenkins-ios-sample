@@ -39,7 +39,7 @@ Those values must stay in CI secret storage or local keychains, never in source.
 
 Crash-reporting credentials should remain local or platform-managed.
 
-## What We Will Not Merge For Now
+## What We Will Not Merge (For Now)
 
 - Committed signing material or CI secrets
 - Fabric/Crashlytics credentials in source
