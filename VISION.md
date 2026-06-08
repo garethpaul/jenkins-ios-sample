@@ -1,5 +1,8 @@
 ## Jenkins iOS Sample Vision
 
+This document explains the current state and direction of the project.
+Project overview and developer docs: [`README.md`](README.md)
+
 Jenkins iOS Sample is a Swift iOS project intended to demonstrate CI setup with
 Jenkins-era iOS tooling, Fabric, and Crashlytics.
 
