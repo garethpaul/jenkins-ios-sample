@@ -119,6 +119,7 @@ def check_required_files():
         "docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md",
         "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-named-fabric-placeholder-guard.md",
+        "docs/plans/2026-06-09-build-script-placeholder-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -178,6 +179,11 @@ def check_project_wiring():
     expect("$FABRIC_API_KEY" in pbxproj, "Fabric run script should use FABRIC_API_KEY")
     expect("$CRASHLYTICS_BUILD_SECRET" in pbxproj, "Fabric run script should use CRASHLYTICS_BUILD_SECRET")
     expect("Skipping Fabric run script" in pbxproj, "Fabric run script should skip when secrets are absent")
+    expect("is_placeholder_value()" in pbxproj and "normalized_value=$(printf '%s'" in pbxproj and
+           "tr '[:lower:]' '[:upper:]')" in pbxproj and "'$('" in pbxproj and
+           "*FABRIC_API_KEY*" in pbxproj and "*CRASHLYTICS_BUILD_SECRET*" in pbxproj and
+           "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj,
+           "Fabric run script should skip empty, unresolved, named, and replacement placeholder values")
     expect(not re.search(r"Fabric\.framework/run\s+[0-9a-f]{40}\s+[0-9a-f]{64}", pbxproj), "Fabric run script should not commit raw key material")
     expect("Jenkins iOS SampleTests.xctest" in scheme, "shared Xcode scheme should include the test target")
 
@@ -263,6 +269,7 @@ def check_docs():
     embedded_plan = read_text("docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md")
     make_gates_plan = read_text("docs/plans/2026-06-09-make-gate-aliases.md")
     named_plan = read_text("docs/plans/2026-06-09-named-fabric-placeholder-guard.md")
+    build_script_plan = read_text("docs/plans/2026-06-09-build-script-placeholder-guard.md")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -280,6 +287,7 @@ def check_docs():
         expect("ci secret" in lowered or "ci secrets" in lowered, "{} should document CI secret handling".format(text_name))
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
         expect("named placeholder" in lowered, "{} should document named placeholder fragment handling".format(text_name))
+        expect("build script placeholder" in lowered, "{} should document build script placeholder handling".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -310,6 +318,10 @@ def check_docs():
            "named placeholder" in vision.lower() and
            "named placeholder" in security.lower(),
            "docs should describe named placeholder fragment rejection")
+    expect("build script placeholder" in readme.lower() and
+           "build script placeholder" in vision.lower() and
+           "build script placeholder" in security.lower(),
+           "docs should describe build script placeholder rejection")
     expect("Twitter" not in readme, "README should not describe this Crashlytics sample as Twitter configuration")
     expect("placeholders" in changes.lower(), "CHANGES should mention placeholders")
     expect("whitespace-only" in changes, "CHANGES should mention whitespace-only Fabric API key handling")
@@ -318,6 +330,7 @@ def check_docs():
     expect("case-insensitive placeholder" in changes.lower(), "CHANGES should mention case-insensitive placeholder handling")
     expect("embedded placeholder" in changes.lower(), "CHANGES should mention embedded placeholder handling")
     expect("named placeholder" in changes.lower(), "CHANGES should mention named placeholder fragment handling")
+    expect("build script placeholder" in changes.lower(), "CHANGES should mention build script placeholder handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -326,6 +339,7 @@ def check_docs():
     expect("status: completed" in embedded_plan, "embedded Fabric placeholder plan should be marked completed")
     expect("status: completed" in make_gates_plan, "make gate aliases plan should be marked completed")
     expect("status: completed" in named_plan, "named Fabric placeholder plan should be marked completed")
+    expect("status: completed" in build_script_plan, "build script placeholder guard plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))

@@ -58,6 +58,8 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 
 - Open `Jenkins iOS Sample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The app initializes Fabric with Crashlytics. If the required build settings are missing, the Fabric run script skips instead of using committed credentials.
+- The build script placeholder guard also skips unresolved, named, example, or
+  replacement placeholder values before invoking the vendored Fabric script.
 - Runtime Fabric initialization also skips when the app plist still contains an empty, whitespace-only, placeholder, embedded placeholder, or named placeholder fragment API key.
 - Testable Fabric API key validation keeps the runtime guard covered by XCTest cases for missing, blank, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values.
 - The Xcode scheme is shared under `xcshareddata/xcschemes` so Jenkins and
@@ -66,7 +68,7 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, runtime placeholder API key guarding, embedded placeholder rejection, named placeholder fragment rejection, case-insensitive placeholder rejection, whitespace-only key rejection, testable Fabric API key validation, and CI secret documentation.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, build script placeholder guarding, runtime placeholder API key guarding, embedded placeholder rejection, named placeholder fragment rejection, case-insensitive placeholder rejection, whitespace-only key rejection, testable Fabric API key validation, and CI secret documentation.
 - The `lint`, `test`, and `build` targets intentionally alias the static
   baseline on hosts without the legacy Xcode toolchain, keeping the standard
   local gate commands available without claiming to replace Xcode verification.

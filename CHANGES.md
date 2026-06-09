@@ -10,6 +10,8 @@
   Crashlytics startup.
 - Rejected named placeholder fragments such as `FABRIC_API_KEY` and
   `CRASHLYTICS_BUILD_SECRET` before Crashlytics startup.
+- Added a build script placeholder guard so unresolved, named, example, or
+  replacement CI values skip the vendored Fabric script.
 
 ## 2026-06-08
 

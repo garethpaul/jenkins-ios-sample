@@ -229,7 +229,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -n \"$FABRIC_API_KEY\" ] && [ -n \"$CRASHLYTICS_BUILD_SECRET\" ]; then\n  ./Fabric.framework/run \"$FABRIC_API_KEY\" \"$CRASHLYTICS_BUILD_SECRET\"\nelse\n  echo \"Skipping Fabric run script: set FABRIC_API_KEY and CRASHLYTICS_BUILD_SECRET.\"\nfi\n";
+			shellScript = "is_placeholder_value() {\n  normalized_value=$(printf '%s' \"$1\" | tr '[:lower:]' '[:upper:]')\n  case \"$normalized_value\" in\n    \"\"|*'$('*|*FABRIC_API_KEY*|*CRASHLYTICS_BUILD_SECRET*|YOUR_*|REPLACE_*)\n      return 0\n      ;;\n    *)\n      return 1\n      ;;\n  esac\n}\n\nif is_placeholder_value \"$FABRIC_API_KEY\" || is_placeholder_value \"$CRASHLYTICS_BUILD_SECRET\"; then\n  echo \"Skipping Fabric run script: set real FABRIC_API_KEY and CRASHLYTICS_BUILD_SECRET.\"\nelse\n  ./Fabric.framework/run \"$FABRIC_API_KEY\" \"$CRASHLYTICS_BUILD_SECRET\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
