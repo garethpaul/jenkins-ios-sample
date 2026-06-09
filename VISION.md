@@ -27,6 +27,7 @@ Priority:
 - Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
 - Skip runtime Fabric initialization when the plist contains a placeholder API key or whitespace-only value
 - Preserve testable Fabric API key validation for the runtime startup guard
+- Keep case-insensitive placeholder rejection before Crashlytics startup
 - Maintain security policy for the sample
 
 Next priorities:

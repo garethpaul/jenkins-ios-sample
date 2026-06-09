@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-09
+
+- Made runtime Fabric API key case-insensitive placeholder checks and covered
+  lowercase example placeholders in tests.
+
 ## 2026-06-08
 
 - Replaced committed Fabric/Crashlytics values with `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` placeholders.
