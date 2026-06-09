@@ -6,6 +6,7 @@
 - Changed the Fabric run script to skip gracefully unless CI or local Xcode provides both values.
 - Guarded runtime Fabric initialization so empty or placeholder API key values do not start Crashlytics.
 - Trimmed runtime Fabric API key values so whitespace-only placeholders do not start Crashlytics.
+- Added testable Fabric API key validation coverage for missing, blank, placeholder, and trimmed real values.
 - Added `Jenkins iOS Sample/FabricKeys.xcconfig.example` to document local placeholder names without storing secrets.
 - Added `make check` with a static baseline for Xcode project wiring, plist/storyboard/asset parsing, framework references, credential guardrails, and CI documentation.
 - Moved the Xcode scheme from tracked `xcuserdata` into shared project data for CI discovery.

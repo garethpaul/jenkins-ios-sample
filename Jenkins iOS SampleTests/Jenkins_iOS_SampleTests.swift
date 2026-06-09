@@ -8,29 +8,23 @@
 
 import UIKit
 import XCTest
+@testable import Jenkins_iOS_Sample
 
 class Jenkins_iOS_SampleTests: XCTestCase {
-    
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+
+    func testFabricAPIKeyValidationRejectsMissingOrBlankValues() {
+        XCTAssertFalse(isConfiguredFabricAPIKey(nil))
+        XCTAssertFalse(isConfiguredFabricAPIKey(""))
+        XCTAssertFalse(isConfiguredFabricAPIKey(" \n\t "))
     }
-    
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
+
+    func testFabricAPIKeyValidationRejectsPlaceholders() {
+        XCTAssertFalse(isConfiguredFabricAPIKey("$(FABRIC_API_KEY)"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_FABRIC_API_KEY"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("REPLACE_WITH_FABRIC_API_KEY"))
     }
-    
-    func testExample() {
-        // This is an example of a functional test case.
-        XCTAssert(true, "Pass")
+
+    func testFabricAPIKeyValidationAcceptsTrimmedRealValues() {
+        XCTAssertTrue(isConfiguredFabricAPIKey(" abc123 "))
     }
-    
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measureBlock() {
-            // Put the code you want to measure the time of here.
-        }
-    }
-    
 }

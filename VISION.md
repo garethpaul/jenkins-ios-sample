@@ -26,6 +26,7 @@ Priority:
 - Avoid committing CI secrets, signing material, or crash-reporting credentials
 - Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
 - Skip runtime Fabric initialization when the plist contains a placeholder API key or whitespace-only value
+- Preserve testable Fabric API key validation for the runtime startup guard
 - Maintain security policy for the sample
 
 Next priorities:

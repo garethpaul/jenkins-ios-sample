@@ -10,6 +10,18 @@ import UIKit
 import Fabric
 import Crashlytics
 
+func isConfiguredFabricAPIKey(apiKey: String?) -> Bool {
+    guard let apiKey = apiKey else {
+        return false
+    }
+
+    let trimmedAPIKey = apiKey.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
+    return trimmedAPIKey.characters.count > 0 &&
+        !trimmedAPIKey.hasPrefix("$(") &&
+        trimmedAPIKey != "YOUR_FABRIC_API_KEY" &&
+        !trimmedAPIKey.hasPrefix("REPLACE_")
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -28,11 +40,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func hasConfiguredFabricAPIKey() -> Bool {
         if let fabric = NSBundle.mainBundle().objectForInfoDictionaryKey("Fabric") as? NSDictionary,
             apiKey = fabric["APIKey"] as? String {
-                let trimmedAPIKey = apiKey.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
-                return trimmedAPIKey.characters.count > 0 &&
-                    !trimmedAPIKey.hasPrefix("$(") &&
-                    trimmedAPIKey != "YOUR_FABRIC_API_KEY" &&
-                    !trimmedAPIKey.hasPrefix("REPLACE_")
+                return isConfiguredFabricAPIKey(apiKey)
         }
 
         return false

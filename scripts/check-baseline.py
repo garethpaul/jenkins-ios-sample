@@ -114,6 +114,7 @@ def check_required_files():
         "docs/plans/2026-06-08-fabric-key-trim-guard.md",
         "docs/plans/2026-06-08-jenkins-ios-baseline.md",
         "docs/plans/2026-06-08-runtime-fabric-placeholder-guard.md",
+        "docs/plans/2026-06-08-testable-fabric-key-validation.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -169,6 +170,7 @@ def check_project_wiring():
     expect('INFOPLIST_FILE = "Jenkins iOS SampleTests/Info.plist";' in pbxproj, "test plist should stay wired")
     expect("IPHONEOS_DEPLOYMENT_TARGET = 8.3;" in pbxproj, "legacy deployment target should remain visible")
     expect('CODE_SIGN_IDENTITY = "iPhone Developer";' in pbxproj, "sample code signing identity should remain visible")
+    expect("ENABLE_TESTABILITY = YES;" in pbxproj, "app Debug build should keep testability enabled for XCTest")
     expect("$FABRIC_API_KEY" in pbxproj, "Fabric run script should use FABRIC_API_KEY")
     expect("$CRASHLYTICS_BUILD_SECRET" in pbxproj, "Fabric run script should use CRASHLYTICS_BUILD_SECRET")
     expect("Skipping Fabric run script" in pbxproj, "Fabric run script should skip when secrets are absent")
@@ -186,6 +188,10 @@ def check_swift_and_secret_guardrails():
     expect("Fabric.with([Crashlytics()])" in source, "AppDelegate should initialize Fabric/Crashlytics")
     expect("if hasConfiguredFabricAPIKey()" in source, "AppDelegate should guard Fabric initialization with configured API key check")
     expect("func hasConfiguredFabricAPIKey() -> Bool" in source, "AppDelegate should keep the Fabric API key check explicit")
+    expect("func isConfiguredFabricAPIKey(apiKey: String?) -> Bool" in source,
+           "AppDelegate should expose a testable Fabric API key validator")
+    expect("return isConfiguredFabricAPIKey(apiKey)" in source,
+           "AppDelegate should share the testable Fabric API key validator")
     expect("objectForInfoDictionaryKey(\"Fabric\")" in source and
            "let trimmedAPIKey = apiKey.stringByTrimmingCharactersInSet" in source and
            "trimmedAPIKey.characters.count > 0" in source,
@@ -196,6 +202,14 @@ def check_swift_and_secret_guardrails():
            "AppDelegate should reject unresolved, example, and replacement Fabric API key placeholders")
     expect("Crashlytics.sharedInstance().crash()" not in source, "sample should not include forced crash behavior")
     expect(not re.search(r"\b(?:print|println|NSLog)\s*\(", source), "first-party Swift should not add console logging")
+
+    tests = strip_swift_comments(read_text("Jenkins iOS SampleTests/Jenkins_iOS_SampleTests.swift"))
+    expect("@testable import Jenkins_iOS_Sample" in tests, "unit tests should import the app module as testable")
+    expect("testFabricAPIKeyValidationRejectsMissingOrBlankValues" in tests, "unit tests should cover missing and blank Fabric keys")
+    expect("testFabricAPIKeyValidationRejectsPlaceholders" in tests, "unit tests should cover placeholder Fabric keys")
+    expect("testFabricAPIKeyValidationAcceptsTrimmedRealValues" in tests, "unit tests should cover trimmed real Fabric keys")
+    expect("isConfiguredFabricAPIKey(nil)" in tests and "isConfiguredFabricAPIKey(\"$(FABRIC_API_KEY)\")" in tests,
+           "unit tests should call the shared Fabric key validator")
 
     selected_text = "\n".join(
         read_text(path)
@@ -228,6 +242,7 @@ def check_docs():
     plan = read_text("docs/plans/2026-06-08-jenkins-ios-baseline.md")
     runtime_plan = read_text("docs/plans/2026-06-08-runtime-fabric-placeholder-guard.md")
     trim_plan = read_text("docs/plans/2026-06-08-fabric-key-trim-guard.md")
+    validation_plan = read_text("docs/plans/2026-06-08-testable-fabric-key-validation.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -248,13 +263,19 @@ def check_docs():
            "docs should describe the runtime Fabric placeholder guard")
     expect("whitespace-only" in readme and "whitespace-only" in vision and "whitespace-only" in security,
            "docs should describe trimming Fabric API key values before startup")
+    expect("testable fabric api key validation" in readme.lower() and
+           "testable fabric api key validation" in vision.lower() and
+           "testable fabric api key validation" in security.lower(),
+           "docs should describe the shared testable Fabric key validation helper")
     expect("Twitter" not in readme, "README should not describe this Crashlytics sample as Twitter configuration")
     expect("placeholders" in changes.lower(), "CHANGES should mention placeholders")
     expect("whitespace-only" in changes, "CHANGES should mention whitespace-only Fabric API key handling")
     expect("runtime Fabric initialization" in changes, "CHANGES should mention runtime Fabric initialization guarding")
+    expect("testable fabric api key validation" in changes.lower(), "CHANGES should mention testable Fabric key validation")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
+    expect("status: completed" in validation_plan, "testable Fabric key validation plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
