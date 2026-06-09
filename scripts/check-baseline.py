@@ -117,6 +117,7 @@ def check_required_files():
         "docs/plans/2026-06-08-testable-fabric-key-validation.md",
         "docs/plans/2026-06-09-case-insensitive-fabric-placeholder-guard.md",
         "docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md",
+        "docs/plans/2026-06-09-named-fabric-placeholder-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -203,6 +204,9 @@ def check_swift_and_secret_guardrails():
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
            "AppDelegate should reject embedded unresolved, example, and replacement Fabric API key placeholders case-insensitively")
+    expect("let placeholderFragments = [\"FABRIC_API_KEY\", \"CRASHLYTICS_BUILD_SECRET\"]" in source and
+           "normalizedAPIKey.rangeOfString(placeholderFragment) != nil" in source,
+           "AppDelegate should reject named Fabric and Crashlytics placeholder fragments")
     expect("Crashlytics.sharedInstance().crash()" not in source, "sample should not include forced crash behavior")
     expect(not re.search(r"\b(?:print|println|NSLog)\s*\(", source), "first-party Swift should not add console logging")
 
@@ -217,6 +221,10 @@ def check_swift_and_secret_guardrails():
     expect("isConfiguredFabricAPIKey(\"your_fabric_api_key\")" in tests and
            "isConfiguredFabricAPIKey(\"replace_with_fabric_api_key\")" in tests,
            "unit tests should cover lowercase Fabric key placeholders")
+    expect("isConfiguredFabricAPIKey(\"YOUR_FABRIC_API_KEY_HERE\")" in tests and
+           "isConfiguredFabricAPIKey(\"prefix-FABRIC_API_KEY\")" in tests and
+           "isConfiguredFabricAPIKey(\"YOUR_CRASHLYTICS_BUILD_SECRET\")" in tests,
+           "unit tests should cover named placeholder fragments")
 
     selected_text = "\n".join(
         read_text(path)
@@ -252,6 +260,7 @@ def check_docs():
     validation_plan = read_text("docs/plans/2026-06-08-testable-fabric-key-validation.md")
     case_plan = read_text("docs/plans/2026-06-09-case-insensitive-fabric-placeholder-guard.md")
     embedded_plan = read_text("docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md")
+    named_plan = read_text("docs/plans/2026-06-09-named-fabric-placeholder-guard.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -264,6 +273,7 @@ def check_docs():
         expect("fabric" in lowered and "crashlytics" in lowered, "{} should document Fabric/Crashlytics".format(text_name))
         expect("ci secret" in lowered or "ci secrets" in lowered, "{} should document CI secret handling".format(text_name))
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
+        expect("named placeholder" in lowered, "{} should document named placeholder fragment handling".format(text_name))
 
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("xcshareddata/xcschemes" in readme or "shared" in readme.lower(), "README should document the shared CI scheme")
@@ -284,6 +294,10 @@ def check_docs():
            "embedded placeholder" in vision.lower() and
            "embedded placeholder" in security.lower(),
            "docs should describe embedded placeholder rejection")
+    expect("named placeholder" in readme.lower() and
+           "named placeholder" in vision.lower() and
+           "named placeholder" in security.lower(),
+           "docs should describe named placeholder fragment rejection")
     expect("Twitter" not in readme, "README should not describe this Crashlytics sample as Twitter configuration")
     expect("placeholders" in changes.lower(), "CHANGES should mention placeholders")
     expect("whitespace-only" in changes, "CHANGES should mention whitespace-only Fabric API key handling")
@@ -291,12 +305,14 @@ def check_docs():
     expect("testable fabric api key validation" in changes.lower(), "CHANGES should mention testable Fabric key validation")
     expect("case-insensitive placeholder" in changes.lower(), "CHANGES should mention case-insensitive placeholder handling")
     expect("embedded placeholder" in changes.lower(), "CHANGES should mention embedded placeholder handling")
+    expect("named placeholder" in changes.lower(), "CHANGES should mention named placeholder fragment handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
     expect("status: completed" in validation_plan, "testable Fabric key validation plan should be marked completed")
     expect("status: completed" in case_plan, "case-insensitive Fabric placeholder plan should be marked completed")
     expect("status: completed" in embedded_plan, "embedded Fabric placeholder plan should be marked completed")
+    expect("status: completed" in named_plan, "named Fabric placeholder plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))

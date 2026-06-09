@@ -28,6 +28,7 @@ Priority:
 - Skip runtime Fabric initialization when the plist contains a placeholder API key or whitespace-only value
 - Preserve testable Fabric API key validation for the runtime startup guard
 - Keep embedded placeholder and case-insensitive placeholder rejection before Crashlytics startup
+- Reject named placeholder fragments such as `FABRIC_API_KEY` before Crashlytics startup
 - Maintain security policy for the sample
 
 Next priorities:

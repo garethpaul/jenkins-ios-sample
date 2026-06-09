@@ -23,6 +23,9 @@ class Jenkins_iOS_SampleTests: XCTestCase {
         XCTAssertFalse(isConfiguredFabricAPIKey("prefix-$(FABRIC_API_KEY)"))
         XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_FABRIC_API_KEY"))
         XCTAssertFalse(isConfiguredFabricAPIKey("your_fabric_api_key"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_FABRIC_API_KEY_HERE"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("prefix-FABRIC_API_KEY"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_CRASHLYTICS_BUILD_SECRET"))
         XCTAssertFalse(isConfiguredFabricAPIKey("REPLACE_WITH_FABRIC_API_KEY"))
         XCTAssertFalse(isConfiguredFabricAPIKey("replace_with_fabric_api_key"))
     }

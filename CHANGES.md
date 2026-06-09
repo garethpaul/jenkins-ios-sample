@@ -6,6 +6,8 @@
   lowercase example placeholders in tests.
 - Rejected embedded placeholder fragments in Fabric API key values before
   Crashlytics startup.
+- Rejected named placeholder fragments such as `FABRIC_API_KEY` and
+  `CRASHLYTICS_BUILD_SECRET` before Crashlytics startup.
 
 ## 2026-06-08
 
