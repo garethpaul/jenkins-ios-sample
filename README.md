@@ -55,14 +55,14 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 
 - Open `Jenkins iOS Sample.xcodeproj` in Xcode, choose the app or sample scheme, and run it on the matching simulator/device.
 - The app initializes Fabric with Crashlytics. If the required build settings are missing, the Fabric run script skips instead of using committed credentials.
-- Runtime Fabric initialization also skips when the app plist still contains an empty or placeholder API key.
+- Runtime Fabric initialization also skips when the app plist still contains an empty, whitespace-only, or placeholder API key.
 - The Xcode scheme is shared under `xcshareddata/xcschemes` so Jenkins and
   command-line `xcodebuild` can discover it without developer-specific
   `xcuserdata`.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, runtime placeholder API key guarding, and CI secret documentation.
+- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, runtime placeholder API key guarding, whitespace-only key rejection, and CI secret documentation.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
