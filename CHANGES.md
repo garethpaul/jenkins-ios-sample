@@ -4,6 +4,8 @@
 
 - Made runtime Fabric API key case-insensitive placeholder checks and covered
   lowercase example placeholders in tests.
+- Rejected unresolved build-setting placeholders anywhere in the Fabric API key
+  value.
 
 ## 2026-06-08
 

@@ -18,7 +18,7 @@ func isConfiguredFabricAPIKey(apiKey: String?) -> Bool {
     let trimmedAPIKey = apiKey.stringByTrimmingCharactersInSet(NSCharacterSet.whitespaceAndNewlineCharacterSet())
     let normalizedAPIKey = trimmedAPIKey.uppercaseString
     return trimmedAPIKey.characters.count > 0 &&
-        !trimmedAPIKey.hasPrefix("$(") &&
+        trimmedAPIKey.rangeOfString("$(") == nil &&
         normalizedAPIKey != "YOUR_FABRIC_API_KEY" &&
         !normalizedAPIKey.hasPrefix("REPLACE_")
 }

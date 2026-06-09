@@ -116,6 +116,7 @@ def check_required_files():
         "docs/plans/2026-06-08-runtime-fabric-placeholder-guard.md",
         "docs/plans/2026-06-08-testable-fabric-key-validation.md",
         "docs/plans/2026-06-09-case-insensitive-fabric-placeholder-guard.md",
+        "docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -198,7 +199,7 @@ def check_swift_and_secret_guardrails():
            "let normalizedAPIKey = trimmedAPIKey.uppercaseString" in source and
            "trimmedAPIKey.characters.count > 0" in source,
            "AppDelegate should trim, normalize, and inspect the Fabric API key from Info.plist")
-    expect("!trimmedAPIKey.hasPrefix(\"$(\")" in source and
+    expect("trimmedAPIKey.rangeOfString(\"$(\") == nil" in source and
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
            "AppDelegate should reject unresolved, example, and replacement Fabric API key placeholders case-insensitively")
@@ -210,7 +211,8 @@ def check_swift_and_secret_guardrails():
     expect("testFabricAPIKeyValidationRejectsMissingOrBlankValues" in tests, "unit tests should cover missing and blank Fabric keys")
     expect("testFabricAPIKeyValidationRejectsPlaceholders" in tests, "unit tests should cover placeholder Fabric keys")
     expect("testFabricAPIKeyValidationAcceptsTrimmedRealValues" in tests, "unit tests should cover trimmed real Fabric keys")
-    expect("isConfiguredFabricAPIKey(nil)" in tests and "isConfiguredFabricAPIKey(\"$(FABRIC_API_KEY)\")" in tests,
+    expect("isConfiguredFabricAPIKey(nil)" in tests and "isConfiguredFabricAPIKey(\"$(FABRIC_API_KEY)\")" in tests and
+           "isConfiguredFabricAPIKey(\"prefix-$(FABRIC_API_KEY)\")" in tests,
            "unit tests should call the shared Fabric key validator")
     expect("isConfiguredFabricAPIKey(\"your_fabric_api_key\")" in tests and
            "isConfiguredFabricAPIKey(\"replace_with_fabric_api_key\")" in tests,
@@ -249,6 +251,7 @@ def check_docs():
     trim_plan = read_text("docs/plans/2026-06-08-fabric-key-trim-guard.md")
     validation_plan = read_text("docs/plans/2026-06-08-testable-fabric-key-validation.md")
     case_plan = read_text("docs/plans/2026-06-09-case-insensitive-fabric-placeholder-guard.md")
+    embedded_plan = read_text("docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md")
     gitignore = read_text(".gitignore")
 
     for text_name, text in (
@@ -288,6 +291,7 @@ def check_docs():
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
     expect("status: completed" in validation_plan, "testable Fabric key validation plan should be marked completed")
     expect("status: completed" in case_plan, "case-insensitive Fabric placeholder plan should be marked completed")
+    expect("status: completed" in embedded_plan, "embedded Fabric placeholder plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
