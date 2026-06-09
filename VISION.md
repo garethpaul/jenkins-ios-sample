@@ -12,10 +12,11 @@ framework integrations, tests, and security policy.
 The goal is to keep the sample buildable and credential-safe while documenting
 its CI assumptions.
 
-Current baseline: `make check` runs `scripts/check-baseline.py` to verify the
-legacy Xcode project shape, Fabric/Crashlytics framework wiring, placeholder
-build settings, CI secret boundaries, committed plist/storyboard/asset parsing,
-shared scheme placement, and documentation.
+Current baseline: `make lint`, `make test`, `make build`, and `make check` run
+`scripts/check-baseline.py` to verify the legacy Xcode project shape,
+Fabric/Crashlytics framework wiring, placeholder build settings, CI secret
+boundaries, committed plist/storyboard/asset parsing, shared scheme placement,
+and documentation.
 
 The current focus is:
 
@@ -29,6 +30,8 @@ Priority:
 - Preserve testable Fabric API key validation for the runtime startup guard
 - Keep embedded placeholder and case-insensitive placeholder rejection before Crashlytics startup
 - Reject named placeholder fragments such as `FABRIC_API_KEY` before Crashlytics startup
+- Keep `make lint`, `make test`, `make build`, and `make check` available as
+  local verification gates
 - Maintain security policy for the sample
 
 Next priorities:
@@ -43,7 +46,8 @@ Contribution rules:
 
 - One PR = one focused CI, build, dependency, or documentation change.
 - Keep credentials and provisioning profiles out of git.
-- Run `make check` before pushing source, plist, project, CI-secret, or security documentation changes.
+- Run `make lint`, `make test`, `make build`, and `make check` before pushing
+  source, plist, project, CI-secret, or security documentation changes.
 - Verify the Xcode project or CI command after build changes.
 - Preserve the runtime placeholder API key guard around Fabric startup.
 - Preserve sample simplicity over production pipeline complexity.

@@ -2,6 +2,8 @@
 
 ## 2026-06-09
 
+- Added local `make lint`, `make test`, and `make build` gate aliases for the
+  static Jenkins iOS baseline.
 - Made runtime Fabric API key case-insensitive placeholder checks and covered
   lowercase example placeholders in tests.
 - Rejected embedded placeholder fragments in Fabric API key values before

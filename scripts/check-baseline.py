@@ -117,6 +117,7 @@ def check_required_files():
         "docs/plans/2026-06-08-testable-fabric-key-validation.md",
         "docs/plans/2026-06-09-case-insensitive-fabric-placeholder-guard.md",
         "docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md",
+        "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-named-fabric-placeholder-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
@@ -260,8 +261,13 @@ def check_docs():
     validation_plan = read_text("docs/plans/2026-06-08-testable-fabric-key-validation.md")
     case_plan = read_text("docs/plans/2026-06-09-case-insensitive-fabric-placeholder-guard.md")
     embedded_plan = read_text("docs/plans/2026-06-09-embedded-fabric-placeholder-guard.md")
+    make_gates_plan = read_text("docs/plans/2026-06-09-make-gate-aliases.md")
     named_plan = read_text("docs/plans/2026-06-09-named-fabric-placeholder-guard.md")
     gitignore = read_text(".gitignore")
+    makefile = read_text("Makefile")
+
+    expect(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
+           "Makefile should expose lint, test, build, and check verification gates")
 
     for text_name, text in (
         ("README.md", readme),
@@ -275,6 +281,12 @@ def check_docs():
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
         expect("named placeholder" in lowered, "{} should document named placeholder fragment handling".format(text_name))
 
+    expect("make lint" in readme and "make test" in readme and "make build" in readme,
+           "README should document the standard local verification gates")
+    expect("make lint" in vision and "make test" in vision and "make build" in vision,
+           "VISION should document the standard local verification gates")
+    expect("make lint" in changes and "make test" in changes and "make build" in changes,
+           "CHANGES should mention the standard local verification gates")
     expect("scripts/check-baseline.py" in readme, "README should name the baseline checker")
     expect("xcshareddata/xcschemes" in readme or "shared" in readme.lower(), "README should document the shared CI scheme")
     expect("FABRIC_API_KEY" in readme and "CRASHLYTICS_BUILD_SECRET" in readme, "README should document required build settings")
@@ -312,6 +324,7 @@ def check_docs():
     expect("status: completed" in validation_plan, "testable Fabric key validation plan should be marked completed")
     expect("status: completed" in case_plan, "case-insensitive Fabric placeholder plan should be marked completed")
     expect("status: completed" in embedded_plan, "embedded Fabric placeholder plan should be marked completed")
+    expect("status: completed" in make_gates_plan, "make gate aliases plan should be marked completed")
     expect("status: completed" in named_plan, "named Fabric placeholder plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):

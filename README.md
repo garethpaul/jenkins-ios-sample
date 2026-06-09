@@ -26,7 +26,7 @@ Additional scan context:
 
 - Source directories: Crashlytics.framework, Fabric.framework, Jenkins iOS Sample, Jenkins iOS Sample.xcodeproj, Jenkins iOS SampleTests
 - Dependency and build manifests: none detected
-- Entry points or build surfaces: `make check`, Jenkins iOS Sample.xcodeproj
+- Entry points or build surfaces: `make lint`, `make test`, `make build`, `make check`, Jenkins iOS Sample.xcodeproj
 - Test-looking files: Jenkins iOS SampleTests/Info.plist, Jenkins iOS SampleTests/Jenkins_iOS_SampleTests.swift
 
 ## Getting Started
@@ -34,7 +34,7 @@ Additional scan context:
 ### Prerequisites
 
 - Git
-- Python 3 for static verification with `make check`
+- Python 3 for static verification with `make lint`, `make test`, `make build`, and `make check`
 - macOS with Xcode for building Apple platform projects
 
 ### Setup
@@ -42,6 +42,9 @@ Additional scan context:
 ```bash
 git clone https://github.com/garethpaul/jenkins-ios-sample.git
 cd jenkins-ios-sample
+make lint
+make test
+make build
 make check
 ```
 
@@ -63,7 +66,10 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 
 ## Testing and Verification
 
-- `make check` runs `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, runtime placeholder API key guarding, embedded placeholder rejection, named placeholder fragment rejection, case-insensitive placeholder rejection, whitespace-only key rejection, testable Fabric API key validation, and CI secret documentation.
+- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, runtime placeholder API key guarding, embedded placeholder rejection, named placeholder fragment rejection, case-insensitive placeholder rejection, whitespace-only key rejection, testable Fabric API key validation, and CI secret documentation.
+- The `lint`, `test`, and `build` targets intentionally alias the static
+  baseline on hosts without the legacy Xcode toolchain, keeping the standard
+  local gate commands available without claiming to replace Xcode verification.
 - Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
@@ -86,9 +92,10 @@ When the required SDK or runtime is unavailable, use static checks and source re
 ## Maintenance Notes
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
-- Run `make check` before pushing Swift, plist, project, framework-reference, CI-secret, or documentation changes.
+- Run `make lint`, `make test`, `make build`, and `make check` before pushing Swift, plist, project, framework-reference, CI-secret, or documentation changes.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
+- See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
 
 ## Contributing
 
