@@ -4,8 +4,8 @@
 
 - Made runtime Fabric API key case-insensitive placeholder checks and covered
   lowercase example placeholders in tests.
-- Rejected unresolved build-setting placeholders anywhere in the Fabric API key
-  value.
+- Rejected embedded placeholder fragments in Fabric API key values before
+  Crashlytics startup.
 
 ## 2026-06-08
 

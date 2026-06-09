@@ -202,7 +202,7 @@ def check_swift_and_secret_guardrails():
     expect("trimmedAPIKey.rangeOfString(\"$(\") == nil" in source and
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
-           "AppDelegate should reject unresolved, example, and replacement Fabric API key placeholders case-insensitively")
+           "AppDelegate should reject embedded unresolved, example, and replacement Fabric API key placeholders case-insensitively")
     expect("Crashlytics.sharedInstance().crash()" not in source, "sample should not include forced crash behavior")
     expect(not re.search(r"\b(?:print|println|NSLog)\s*\(", source), "first-party Swift should not add console logging")
 
@@ -280,12 +280,17 @@ def check_docs():
            "case-insensitive placeholder" in vision.lower() and
            "case-insensitive placeholder" in security.lower(),
            "docs should describe case-insensitive placeholder rejection")
+    expect("embedded placeholder" in readme.lower() and
+           "embedded placeholder" in vision.lower() and
+           "embedded placeholder" in security.lower(),
+           "docs should describe embedded placeholder rejection")
     expect("Twitter" not in readme, "README should not describe this Crashlytics sample as Twitter configuration")
     expect("placeholders" in changes.lower(), "CHANGES should mention placeholders")
     expect("whitespace-only" in changes, "CHANGES should mention whitespace-only Fabric API key handling")
     expect("runtime Fabric initialization" in changes, "CHANGES should mention runtime Fabric initialization guarding")
     expect("testable fabric api key validation" in changes.lower(), "CHANGES should mention testable Fabric key validation")
     expect("case-insensitive placeholder" in changes.lower(), "CHANGES should mention case-insensitive placeholder handling")
+    expect("embedded placeholder" in changes.lower(), "CHANGES should mention embedded placeholder handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
