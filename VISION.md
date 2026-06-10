@@ -16,7 +16,8 @@ Current baseline: `make lint`, `make test`, `make build`, and `make check` run
 `scripts/check-baseline.py` to verify the legacy Xcode project shape,
 Fabric/Crashlytics framework wiring, placeholder build settings, CI secret
 boundaries, build script placeholder handling, committed
-plist/storyboard/asset parsing, shared scheme placement, and documentation.
+plist/storyboard/asset parsing, whitespace-only CI secret rejection, shared
+scheme placement, and documentation.
 
 The current focus is:
 
@@ -27,6 +28,7 @@ Priority:
 - Avoid committing CI secrets, signing material, or crash-reporting credentials
 - Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
 - Keep the Fabric build script placeholder guard aligned with runtime validation
+- Reject whitespace-only CI secret values before invoking the Fabric build script
 - Skip runtime Fabric initialization when the plist contains a placeholder API key or whitespace-only value
 - Preserve testable Fabric API key validation for the runtime startup guard
 - Keep embedded placeholder and case-insensitive placeholder rejection before Crashlytics startup

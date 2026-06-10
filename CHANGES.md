@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-10
+
+- Trimmed Fabric build script values before placeholder checks so
+  whitespace-only CI secrets skip the vendored Fabric script.
+
 ## 2026-06-09
 
 - Added local `make lint`, `make test`, and `make build` gate aliases for the

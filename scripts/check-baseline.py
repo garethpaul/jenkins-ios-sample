@@ -120,6 +120,7 @@ def check_required_files():
         "docs/plans/2026-06-09-make-gate-aliases.md",
         "docs/plans/2026-06-09-named-fabric-placeholder-guard.md",
         "docs/plans/2026-06-09-build-script-placeholder-guard.md",
+        "docs/plans/2026-06-10-build-script-whitespace-secret-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -179,7 +180,11 @@ def check_project_wiring():
     expect("$FABRIC_API_KEY" in pbxproj, "Fabric run script should use FABRIC_API_KEY")
     expect("$CRASHLYTICS_BUILD_SECRET" in pbxproj, "Fabric run script should use CRASHLYTICS_BUILD_SECRET")
     expect("Skipping Fabric run script" in pbxproj, "Fabric run script should skip when secrets are absent")
-    expect("is_placeholder_value()" in pbxproj and "normalized_value=$(printf '%s'" in pbxproj and
+    expect("trim_value()" in pbxproj and "sed 's/^[[:space:]]*//;s/[[:space:]]*$//'" in pbxproj and
+           "trimmed_value=$(trim_value" in pbxproj and
+           "./Fabric.framework/run \\\"$fabric_api_key\\\" \\\"$crashlytics_build_secret\\\"" in pbxproj,
+           "Fabric run script should trim CI values before placeholder checks and vendored invocation")
+    expect("is_placeholder_value()" in pbxproj and "normalized_value=$(printf '%s' \\\"$trimmed_value\\\"" in pbxproj and
            "tr '[:lower:]' '[:upper:]')" in pbxproj and "'$('" in pbxproj and
            "*FABRIC_API_KEY*" in pbxproj and "*CRASHLYTICS_BUILD_SECRET*" in pbxproj and
            "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj,
@@ -270,6 +275,7 @@ def check_docs():
     make_gates_plan = read_text("docs/plans/2026-06-09-make-gate-aliases.md")
     named_plan = read_text("docs/plans/2026-06-09-named-fabric-placeholder-guard.md")
     build_script_plan = read_text("docs/plans/2026-06-09-build-script-placeholder-guard.md")
+    build_script_whitespace_plan = read_text("docs/plans/2026-06-10-build-script-whitespace-secret-guard.md")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -288,6 +294,7 @@ def check_docs():
         expect("credential" in lowered or "secret" in lowered, "{} should document credential handling".format(text_name))
         expect("named placeholder" in lowered, "{} should document named placeholder fragment handling".format(text_name))
         expect("build script placeholder" in lowered, "{} should document build script placeholder handling".format(text_name))
+        expect("whitespace-only ci" in lowered, "{} should document whitespace-only CI secret handling".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -331,6 +338,7 @@ def check_docs():
     expect("embedded placeholder" in changes.lower(), "CHANGES should mention embedded placeholder handling")
     expect("named placeholder" in changes.lower(), "CHANGES should mention named placeholder fragment handling")
     expect("build script placeholder" in changes.lower(), "CHANGES should mention build script placeholder handling")
+    expect("whitespace-only CI" in changes, "CHANGES should mention whitespace-only CI secret handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -340,6 +348,8 @@ def check_docs():
     expect("status: completed" in make_gates_plan, "make gate aliases plan should be marked completed")
     expect("status: completed" in named_plan, "named Fabric placeholder plan should be marked completed")
     expect("status: completed" in build_script_plan, "build script placeholder guard plan should be marked completed")
+    expect("status: completed" in build_script_whitespace_plan,
+           "build script whitespace secret guard plan should be marked completed")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
