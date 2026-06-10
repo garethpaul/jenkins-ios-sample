@@ -26,6 +26,10 @@ Helpful reports include:
 
 - This repository appears to be an Apple platform application or Swift sample. The active security scope is the code and documentation on the default branch.
 - Fabric and Crashlytics configuration is sensitive. `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` must come from CI secrets, xcodebuild settings, local keychains, or ignored local configuration, not committed source.
+- `VENDORED_FRAMEWORKS.sha256` pins every committed Fabric/Crashlytics framework,
+  installer, and submission executable. Digest verification detects drift but
+  does not establish vendor provenance, patch vulnerabilities, or make the
+  retired SDK suitable for production.
 - The Fabric build script placeholder guard should skip unresolved, named,
   example, or replacement placeholder values before invoking the vendored
   Fabric script.

@@ -25,6 +25,7 @@ Priority:
 
 - Preserve the minimal app and test project structure
 - Keep Fabric/Crashlytics framework assumptions visible
+- Keep all vendored framework and tool executables SHA-256 pinned
 - Avoid committing CI secrets, signing material, or crash-reporting credentials
 - Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
 - Keep the Fabric build script placeholder guard aligned with runtime validation

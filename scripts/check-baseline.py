@@ -3,6 +3,7 @@
 
 from __future__ import print_function
 
+import hashlib
 import json
 import plistlib
 import re
@@ -93,8 +94,11 @@ def check_required_files():
         ".github/workflows/check.yml",
         "CHANGES.md",
         "Crashlytics.framework/Crashlytics",
+        "Crashlytics.framework/run",
+        "Crashlytics.framework/submit",
         "Crashlytics.framework/Headers/Crashlytics.h",
         "Fabric.framework/Fabric",
+        "Fabric.framework/run",
         "Fabric.framework/Headers/Fabric.h",
         "Jenkins iOS Sample.xcodeproj/project.pbxproj",
         "Jenkins iOS Sample.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
@@ -112,6 +116,7 @@ def check_required_files():
         "README.md",
         "SECURITY.md",
         "VISION.md",
+        "VENDORED_FRAMEWORKS.sha256",
         "docs/plans/2026-06-08-fabric-key-trim-guard.md",
         "docs/plans/2026-06-08-jenkins-ios-baseline.md",
         "docs/plans/2026-06-08-runtime-fabric-placeholder-guard.md",
@@ -123,6 +128,7 @@ def check_required_files():
         "docs/plans/2026-06-09-build-script-placeholder-guard.md",
         "docs/plans/2026-06-10-build-script-whitespace-secret-guard.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
+        "docs/plans/2026-06-10-vendored-crash-sdk-integrity.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -196,6 +202,35 @@ def check_project_wiring():
 
     tracked_xcuserdata = [path for path in tracked_paths() if "/xcuserdata/" in path]
     expect(not tracked_xcuserdata, "tracked xcuserdata should be moved to xcshareddata: {}".format(", ".join(tracked_xcuserdata)))
+
+
+def check_vendored_integrity():
+    expected_paths = {
+        "Fabric.framework/Fabric",
+        "Fabric.framework/run",
+        "Crashlytics.framework/Crashlytics",
+        "Crashlytics.framework/run",
+        "Crashlytics.framework/submit",
+    }
+    entries = {}
+    for line_number, line in enumerate(read_text("VENDORED_FRAMEWORKS.sha256").splitlines(), 1):
+        parts = line.split("  ", 1)
+        expect(len(parts) == 2 and re.fullmatch(r"[0-9a-f]{64}", parts[0]) is not None,
+               "VENDORED_FRAMEWORKS.sha256 line {} should contain a lowercase SHA-256 digest and path".format(line_number))
+        if len(parts) != 2:
+            continue
+        digest, path = parts
+        expect(path not in entries and not Path(path).is_absolute() and ".." not in Path(path).parts,
+               "VENDORED_FRAMEWORKS.sha256 line {} should contain a unique repository-relative path".format(line_number))
+        entries[path] = digest
+
+    expect(set(entries) == expected_paths,
+           "vendored framework manifest should cover exactly the committed Fabric/Crashlytics executables")
+    for path, expected_digest in entries.items():
+        artifact = rel(path)
+        if artifact.is_file():
+            actual_digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+            expect(actual_digest == expected_digest, "vendored artifact digest mismatch: {}".format(path))
 
 
 def check_swift_and_secret_guardrails():
@@ -279,6 +314,7 @@ def check_docs():
     build_script_plan = read_text("docs/plans/2026-06-09-build-script-placeholder-guard.md")
     build_script_whitespace_plan = read_text("docs/plans/2026-06-10-build-script-whitespace-secret-guard.md")
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
+    vendored_integrity_plan = read_text("docs/plans/2026-06-10-vendored-crash-sdk-integrity.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -356,6 +392,8 @@ def check_docs():
            "build script whitespace secret guard plan should be marked completed")
     expect("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
            "hosted validation plan should be marked completed")
+    expect("status: completed" in vendored_integrity_plan and "does not establish" in vendored_integrity_plan,
+           "vendored crash SDK integrity plan should be marked completed and state its trust boundary")
     expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
            "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
            "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
@@ -370,6 +408,7 @@ def main():
     check_required_files()
     check_parsable_resources()
     check_project_wiring()
+    check_vendored_integrity()
     check_swift_and_secret_guardrails()
     check_docs()
 

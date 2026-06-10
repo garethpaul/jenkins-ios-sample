@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added SHA-256 integrity pinning for all vendored Fabric and Crashlytics
+  framework, installer, and submission executables.
 - Added pinned, read-only macOS hosted validation for `make check` and
   `Jenkins iOS Sample.xcodeproj` parsing without Fabric/Crashlytics secrets.
 - Trimmed Fabric build script values before placeholder checks so

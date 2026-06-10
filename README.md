@@ -13,6 +13,9 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 
 - `Crashlytics.framework` - source or example code
 - `Fabric.framework` - source or example code
+- `VENDORED_FRAMEWORKS.sha256` - exact digests for the retired framework,
+  installer, and submission executables; drift detection does not establish
+  provenance or make the SDK production-safe
 - `Jenkins iOS Sample` - source or example code
 - `Jenkins iOS Sample.xcodeproj` - Xcode project file
 - `Jenkins iOS SampleTests` - source or example code
