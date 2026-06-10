@@ -35,6 +35,9 @@ Helpful reports include:
 - Testable Fabric API key validation should cover missing, blank, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values before Fabric starts.
 - Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
 - Run `make check` after changing Swift sources, plists, Xcode project metadata, Fabric/Crashlytics framework references, CI secret handling, or security docs.
+- The pinned macOS workflow receives no Fabric/Crashlytics secrets and only
+  parses project metadata; it does not build, sign, run vendored scripts, start
+  Crashlytics, launch a simulator, or upload symbols.
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
 - Review found external API integrations or credential-adjacent configuration; changes in those areas should receive security-focused review before merge.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.

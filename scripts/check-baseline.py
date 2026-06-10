@@ -90,6 +90,7 @@ def strip_swift_comments(text):
 def check_required_files():
     required = [
         ".gitignore",
+        ".github/workflows/check.yml",
         "CHANGES.md",
         "Crashlytics.framework/Crashlytics",
         "Crashlytics.framework/Headers/Crashlytics.h",
@@ -121,6 +122,7 @@ def check_required_files():
         "docs/plans/2026-06-09-named-fabric-placeholder-guard.md",
         "docs/plans/2026-06-09-build-script-placeholder-guard.md",
         "docs/plans/2026-06-10-build-script-whitespace-secret-guard.md",
+        "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
     ]
@@ -276,6 +278,8 @@ def check_docs():
     named_plan = read_text("docs/plans/2026-06-09-named-fabric-placeholder-guard.md")
     build_script_plan = read_text("docs/plans/2026-06-09-build-script-placeholder-guard.md")
     build_script_whitespace_plan = read_text("docs/plans/2026-06-10-build-script-whitespace-secret-guard.md")
+    hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
+    workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
@@ -350,6 +354,13 @@ def check_docs():
     expect("status: completed" in build_script_plan, "build script placeholder guard plan should be marked completed")
     expect("status: completed" in build_script_whitespace_plan,
            "build script whitespace secret guard plan should be marked completed")
+    expect("status: completed" in hosted_validation_plan and "make check" in hosted_validation_plan,
+           "hosted validation plan should be marked completed")
+    expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
+           "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
+           "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
+           "run: make check" in workflow,
+           "Check workflow should stay pinned, read-only, and bounded")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
@@ -363,7 +374,15 @@ def main():
     check_docs()
 
     if shutil.which("xcodebuild"):
-        print("xcodebuild is available; run a simulator/CI build separately for legacy Fabric validation.")
+        result = subprocess.run(
+            ["xcodebuild", "-list", "-project", "Jenkins iOS Sample.xcodeproj"],
+            cwd=str(ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        expect(result.returncode == 0,
+               "xcodebuild could not parse Jenkins iOS Sample.xcodeproj: {}".format(result.stderr.strip()))
     else:
         print("xcodebuild unavailable; skipping legacy iOS build/test and using static baseline checks.")
 

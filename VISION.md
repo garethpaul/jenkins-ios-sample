@@ -35,6 +35,8 @@ Priority:
 - Reject named placeholder fragments such as `FABRIC_API_KEY` before Crashlytics startup
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
+- Keep hosted project validation pinned and read-only on macOS through
+  `Jenkins iOS Sample.xcodeproj` parsing and `make check`
 - Maintain security policy for the sample
 
 Next priorities:

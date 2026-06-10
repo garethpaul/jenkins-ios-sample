@@ -2,6 +2,8 @@
 
 ## 2026-06-10
 
+- Added pinned, read-only macOS hosted validation for `make check` and
+  `Jenkins iOS Sample.xcodeproj` parsing without Fabric/Crashlytics secrets.
 - Trimmed Fabric build script values before placeholder checks so
   whitespace-only CI secrets skip the vendored Fabric script.
 
