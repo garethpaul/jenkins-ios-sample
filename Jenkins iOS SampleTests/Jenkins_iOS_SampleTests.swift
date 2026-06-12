@@ -10,7 +10,7 @@ import UIKit
 import XCTest
 @testable import Jenkins_iOS_Sample
 
-class Jenkins_iOS_SampleTests: XCTestCase {
+final class Jenkins_iOS_SampleTests: XCTestCase {
 
     func testFabricAPIKeyValidationRejectsMissingOrBlankValues() {
         XCTAssertFalse(isConfiguredFabricAPIKey(nil))

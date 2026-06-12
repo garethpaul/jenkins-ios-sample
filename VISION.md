@@ -12,12 +12,13 @@ framework integrations, tests, and security policy.
 The goal is to keep the sample buildable and credential-safe while documenting
 its CI assumptions.
 
-Current baseline: `make lint`, `make test`, `make build`, and `make check` run
-`scripts/check-baseline.py` to verify the legacy Xcode project shape,
+Current baseline: `make lint`, `make build`, and `make check` run
+`scripts/check-baseline.py` to verify the Xcode project shape,
 Fabric/Crashlytics framework wiring, placeholder build settings, CI secret
 boundaries, build script placeholder handling, committed
 plist/storyboard/asset parsing, whitespace-only CI secret rejection, shared
-scheme placement, and documentation.
+scheme placement, Swift 5 settings, and documentation. `make test` adds the
+executable Fabric API key validation XCTest suite when Xcode is available.
 
 The current focus is:
 
@@ -36,8 +37,8 @@ Priority:
 - Reject named placeholder fragments such as `FABRIC_API_KEY` before Crashlytics startup
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
-- Keep hosted project validation pinned and read-only on macOS through
-  `Jenkins iOS Sample.xcodeproj` parsing and `make check`
+- Keep hosted validation pinned, credential-free, and unsigned on macOS through
+  the complete `make test` simulator gate
 - Maintain security policy for the sample
 
 Next priorities:
@@ -45,7 +46,7 @@ Next priorities:
 - Add README setup, Jenkins job, and Xcode verification instructions
 - Move any CI-specific values into documented environment configuration
 - Modernize Fabric/Crashlytics dependencies only in a dedicated pass
-- Add or refresh build scripts for repeatable CI verification
+- Replace the retired Fabric/Crashlytics binaries only in a dedicated dependency pass
 - Keep the CI scheme in `xcshareddata/xcschemes`, not tracked `xcuserdata`
 
 Contribution rules:

@@ -20,7 +20,7 @@ This README is based on the checked-in source, manifests, scripts, and repositor
 - `Jenkins iOS Sample.xcodeproj` - Xcode project file
 - `Jenkins iOS SampleTests` - source or example code
 - `CHANGES.md` - recent maintenance changes
-- `Makefile` - local static verification entry point
+- `Makefile` - local static and executable XCTest entry points
 - `scripts/check-baseline.py` - static Fabric/Crashlytics baseline checks
 - `SECURITY.md` - security reporting and disclosure guidance
 - `VISION.md` - project direction and maintenance guardrails
@@ -37,8 +37,8 @@ Additional scan context:
 ### Prerequisites
 
 - Git
-- Python 3 for static verification with `make lint`, `make test`, `make build`, and `make check`
-- macOS with Xcode for building Apple platform projects
+- Python 3 for static verification with `make lint`, `make build`, and `make check`
+- macOS with Xcode for the complete `make test` simulator gate
 
 ### Setup
 
@@ -71,18 +71,21 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 - The Xcode scheme is shared under `xcshareddata/xcschemes` so Jenkins and
   command-line `xcodebuild` can discover it without developer-specific
   `xcuserdata`.
+- The project uses Swift 5 with an iOS 12 deployment floor so current Xcode can
+  compile the preserved sample and its tests.
 
 ## Testing and Verification
 
-- `make lint`, `make test`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references, placeholder build settings, build script placeholder guarding, runtime placeholder API key guarding, embedded placeholder rejection, named placeholder fragment rejection, case-insensitive placeholder rejection, whitespace-only key rejection, whitespace-only CI secret rejection, testable Fabric API key validation, and CI secret documentation.
-- The `lint`, `test`, and `build` targets intentionally alias the static
-  baseline on hosts without the legacy Xcode toolchain, keeping the standard
-  local gate commands available without claiming to replace Xcode verification.
-- Pinned `macos-15` GitHub Actions runs `make check` and parses
-  `Jenkins iOS Sample.xcodeproj` with `xcodebuild -list`. This hosted validation
-  receives no Fabric/Crashlytics secrets and does not build, sign, run vendored
-  scripts, start Crashlytics, launch a simulator, or upload symbols.
-- Xcode's test action or `xcodebuild test` with the appropriate scheme and destination
+- `make lint`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references and digests, placeholder build settings, build script placeholder guarding, runtime placeholder API key guarding, Swift 5 settings, XCTest wiring, and CI secret documentation.
+- `make test` runs the static baseline and, when Xcode is available, uses
+  `scripts/run-tests.sh` to discover an available iPhone simulator and execute
+  the Fabric API key validation XCTest suite without code signing.
+- Set `IOS_DESTINATION` for a complete xcodebuild destination or
+  `IOS_SIMULATOR_NAME` for a specific available iPhone simulator.
+- Pinned `macos-15` GitHub Actions runs the complete `make test` gate with
+  persisted checkout credentials disabled. It receives no Fabric/Crashlytics
+  secrets, so the guarded vendored build script and runtime initialization skip
+  rather than uploading symbols or crash reports.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
@@ -108,6 +111,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
+- See `docs/plans/2026-06-12-hosted-xctest.md` for the Swift 5, simulator
+  discovery, and hosted XCTest contract.
 
 ## Contributing
 
