@@ -39,7 +39,8 @@ Priority:
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
 - Keep hosted validation pinned, credential-free, and unsigned on macOS through
-  the complete `make test` simulator gate
+  the complete `make test` simulator gate with bounded explicit startup and one
+  recovery attempt
 - Maintain security policy for the sample
 
 Next priorities:

@@ -47,6 +47,9 @@ Helpful reports include:
   persisted checkout credentials and code signing, and executes the Swift 5
   XCTest suite. Placeholder values prevent the vendored upload tooling and
   runtime Crashlytics startup from executing.
+- Hosted XCTest selects one simulator by UDID, waits for an explicit bounded
+  boot with one recovery attempt, and disables parallel workers without
+  skipping any validation cases.
 - Hosted XCTest verifies the runtime placeholder guard, but it does not
   establish that the retired vendored binaries are trustworthy or production-safe.
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.

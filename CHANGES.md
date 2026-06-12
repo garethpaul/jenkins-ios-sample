@@ -10,6 +10,9 @@
   hosted verification that skips the vendored upload script.
 - Rejected embedded whitespace in runtime Fabric API keys and both build-phase
   credentials while preserving edge-trimmed real values.
+- Made hosted XCTest select and explicitly boot one simulator by UDID, retry a
+  bounded readiness failure once, and run the full suite without parallel test
+  workers.
 
 ## 2026-06-10
 

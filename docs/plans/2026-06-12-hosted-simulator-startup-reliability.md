@@ -1,6 +1,6 @@
 # Hosted Simulator Startup Reliability
 
-status: planned
+status: implementation complete; hosted verification pending
 
 ## Context
 
