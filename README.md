@@ -66,8 +66,10 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 - The build script also trims CI-provided Fabric values so whitespace-only CI
   secrets skip the vendored Fabric script instead of being treated as
   configured credentials.
-- Runtime Fabric initialization also skips when the app plist still contains an empty, whitespace-only, placeholder, embedded placeholder, or named placeholder fragment API key.
-- Testable Fabric API key validation keeps the runtime guard covered by XCTest cases for missing, blank, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values.
+- The build script rejects embedded whitespace remaining after trimming either
+  credential so malformed tokens do not reach the vendored Fabric script.
+- Runtime Fabric initialization also skips when the app plist still contains an empty, whitespace-only, embedded whitespace, placeholder, embedded placeholder, or named placeholder fragment API key.
+- Testable Fabric API key validation keeps the runtime guard covered by XCTest cases for missing, blank, embedded whitespace, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values.
 - The Xcode scheme is shared under `xcshareddata/xcschemes` so Jenkins and
   command-line `xcodebuild` can discover it without developer-specific
   `xcuserdata`.
@@ -78,14 +80,16 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
 
 - `make lint`, `make build`, and `make check` run `scripts/check-baseline.py`, which verifies Xcode project wiring, committed plists, storyboard and asset parsing, Fabric/Crashlytics framework references and digests, placeholder build settings, build script placeholder guarding, runtime placeholder API key guarding, Swift 5 settings, XCTest wiring, and CI secret documentation.
 - `make test` runs the static baseline and, when Xcode is available, uses
-  `scripts/run-tests.sh` to discover an available iPhone simulator and execute
-  the Fabric API key validation XCTest suite without code signing.
+  `scripts/run-tests.sh` to select an available iPhone simulator by UDID,
+  explicitly boot it with one bounded recovery attempt, and execute the Fabric
+  API key validation XCTest suite without code signing or parallel workers.
 - Set `IOS_DESTINATION` for a complete xcodebuild destination or
   `IOS_SIMULATOR_NAME` for a specific available iPhone simulator.
 - Pinned `macos-15` GitHub Actions runs the complete `make test` gate with
-  persisted checkout credentials disabled. It receives no Fabric/Crashlytics
-  secrets, so the guarded vendored build script and runtime initialization skip
-  rather than uploading symbols or crash reports.
+  persisted checkout credentials disabled and a bounded fifteen-minute job.
+  It receives no Fabric/Crashlytics secrets, so the guarded vendored build
+  script and runtime initialization skip rather than uploading symbols or
+  crash reports.
 
 When the required SDK or runtime is unavailable, use static checks and source review first, then verify on a machine that has the matching platform toolchain.
 
@@ -113,6 +117,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.
 - See `docs/plans/2026-06-12-hosted-xctest.md` for the Swift 5, simulator
   discovery, and hosted XCTest contract.
+- See `docs/plans/2026-06-12-hosted-simulator-startup-reliability.md` for the
+  bounded simulator boot and recovery contract.
 
 ## Contributing
 

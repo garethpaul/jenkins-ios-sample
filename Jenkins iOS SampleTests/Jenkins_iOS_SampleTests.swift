@@ -30,6 +30,12 @@ final class Jenkins_iOS_SampleTests: XCTestCase {
         XCTAssertFalse(isConfiguredFabricAPIKey("replace_with_fabric_api_key"))
     }
 
+    func testFabricAPIKeyValidationRejectsEmbeddedWhitespace() {
+        XCTAssertFalse(isConfiguredFabricAPIKey("abc 123"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("abc\t123"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("abc\n123"))
+    }
+
     func testFabricAPIKeyValidationAcceptsTrimmedRealValues() {
         XCTAssertTrue(isConfiguredFabricAPIKey(" abc123 "))
     }

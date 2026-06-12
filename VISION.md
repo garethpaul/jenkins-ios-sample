@@ -31,14 +31,16 @@ Priority:
 - Keep `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` supplied by CI or local ignored config
 - Keep the Fabric build script placeholder guard aligned with runtime validation
 - Reject whitespace-only CI secret values before invoking the Fabric build script
-- Skip runtime Fabric initialization when the plist contains a placeholder API key or whitespace-only value
+- Reject embedded whitespace in both build credentials after trimming
+- Skip runtime Fabric initialization when the plist contains a placeholder API key, whitespace-only value, or embedded whitespace
 - Preserve testable Fabric API key validation for the runtime startup guard
 - Keep embedded placeholder and case-insensitive placeholder rejection before Crashlytics startup
 - Reject named placeholder fragments such as `FABRIC_API_KEY` before Crashlytics startup
 - Keep `make lint`, `make test`, `make build`, and `make check` available as
   local verification gates
 - Keep hosted validation pinned, credential-free, and unsigned on macOS through
-  the complete `make test` simulator gate
+  the complete `make test` simulator gate with bounded explicit startup and one
+  recovery attempt
 - Maintain security policy for the sample
 
 Next priorities:

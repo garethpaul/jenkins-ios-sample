@@ -36,6 +36,39 @@ set -eu
 PROJECT=${XCODE_PROJECT:-Jenkins iOS Sample.xcodeproj}
 SCHEME=${XCODE_SCHEME:-Jenkins iOS Sample}
 CONFIGURATION=${CONFIGURATION:-Debug}
+SIMULATOR_ID=
+
+find_simulator_id() {
+    requested_name=$1
+    xcrun simctl list devices available | awk -F '[()]' -v requested_name="$requested_name" '
+        /^[[:space:]]+iPhone/ {
+            name=$1
+            sub(/^[[:space:]]+/, "", name)
+            sub(/[[:space:]]+$/, "", name)
+            if (requested_name == "" || name == requested_name) {
+                print $2
+                exit
+            }
+        }
+    '
+}
+
+wait_for_simulator() {
+    python3 - "$1" <<'PY'
+import subprocess
+import sys
+
+try:
+    completed = subprocess.run(
+        ["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"],
+        timeout=180,
+    )
+except subprocess.TimeoutExpired:
+    sys.exit(124)
+
+sys.exit(completed.returncode)
+PY
+}
 
 if ! command -v xcodebuild >/dev/null 2>&1; then
     printf '%s\\n' "xcodebuild is required to run Jenkins iOS Sample tests." >&2
@@ -44,15 +77,22 @@ fi
 
 if [ -n "${IOS_DESTINATION:-}" ]; then
     DESTINATION=$IOS_DESTINATION
-elif [ -n "${IOS_SIMULATOR_NAME:-}" ]; then
-    DESTINATION="platform=iOS Simulator,name=${IOS_SIMULATOR_NAME}"
 else
-    SIMULATOR_NAME=$(xcrun simctl list devices available | awk -F '[()]' '/^[[:space:]]+iPhone/ { name=$1; sub(/^[[:space:]]+/, "", name); sub(/[[:space:]]+$/, "", name); print name; exit }')
-    if [ -z "$SIMULATOR_NAME" ]; then
-        printf '%s\\n' "No available iPhone simulator was found." >&2
+    SIMULATOR_ID=$(find_simulator_id "${IOS_SIMULATOR_NAME:-}")
+    if [ -z "$SIMULATOR_ID" ]; then
+        printf '%s\\n' "No matching available iPhone simulator was found." >&2
         exit 1
     fi
-    DESTINATION="platform=iOS Simulator,name=${SIMULATOR_NAME}"
+    DESTINATION="platform=iOS Simulator,id=${SIMULATOR_ID}"
+fi
+
+if [ -n "$SIMULATOR_ID" ]; then
+    xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
+    if ! wait_for_simulator "$SIMULATOR_ID"; then
+        xcrun simctl shutdown "$SIMULATOR_ID" >/dev/null 2>&1 || true
+        xcrun simctl boot "$SIMULATOR_ID"
+        wait_for_simulator "$SIMULATOR_ID"
+    fi
 fi
 
 xcodebuild \\
@@ -60,6 +100,8 @@ xcodebuild \\
     -scheme "$SCHEME" \\
     -configuration "$CONFIGURATION" \\
     -destination "$DESTINATION" \\
+    -destination-timeout 120 \\
+    -parallel-testing-enabled NO \\
     CODE_SIGNING_ALLOWED=NO \\
     test
 """
@@ -80,7 +122,7 @@ concurrency:
 jobs:
   baseline:
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -203,6 +245,8 @@ def check_required_files():
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-vendored-crash-sdk-integrity.md",
         HOSTED_XCTEST_PLAN,
+        "docs/plans/2026-06-12-fabric-credential-whitespace.md",
+        "docs/plans/2026-06-12-hosted-simulator-startup-reliability.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "scripts/run-tests.sh",
@@ -277,6 +321,8 @@ def check_project_wiring():
            "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj and
            'if is_placeholder_value \\"$FABRIC_API_KEY\\" || is_placeholder_value \\"$CRASHLYTICS_BUILD_SECRET\\"; then' in pbxproj,
            "Fabric run script should skip empty, unresolved, named, and replacement placeholder values")
+    expect('case \\"$trimmed_value\\" in' in pbxproj and "*[[:space:]]*)" in pbxproj,
+           "Fabric run script should reject whitespace remaining in trimmed credentials")
     expect(not re.search(r"Fabric\.framework/run\s+[0-9a-f]{40}\s+[0-9a-f]{64}", pbxproj), "Fabric run script should not commit raw key material")
     expect("Jenkins iOS SampleTests.xctest" in scheme, "shared Xcode scheme should include the test target")
     expect(scheme.count('BlueprintIdentifier = "88C69EAE1B03CD1F001A9C82"') >= 2 and
@@ -330,9 +376,10 @@ def check_swift_and_secret_guardrails():
            "AppDelegate should share the testable Fabric API key validator")
     expect("object(forInfoDictionaryKey: \"Fabric\")" in source and
            "let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)" in source and
+           "trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil" in source and
            "let normalizedAPIKey = trimmedAPIKey.uppercased()" in source and
            "!trimmedAPIKey.isEmpty" in source,
-           "AppDelegate should trim, normalize, and inspect the Fabric API key from Info.plist")
+           "AppDelegate should trim, reject remaining whitespace, normalize, and inspect the Fabric API key from Info.plist")
     expect("trimmedAPIKey.range(of: \"$(\") == nil" in source and
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
@@ -348,6 +395,11 @@ def check_swift_and_secret_guardrails():
     expect("testFabricAPIKeyValidationRejectsMissingOrBlankValues" in tests, "unit tests should cover missing and blank Fabric keys")
     expect("testFabricAPIKeyValidationRejectsPlaceholders" in tests, "unit tests should cover placeholder Fabric keys")
     expect("testFabricAPIKeyValidationAcceptsTrimmedRealValues" in tests, "unit tests should cover trimmed real Fabric keys")
+    expect("testFabricAPIKeyValidationRejectsEmbeddedWhitespace" in tests and
+           "isConfiguredFabricAPIKey(\"abc 123\")" in tests and
+           "isConfiguredFabricAPIKey(\"abc\\t123\")" in tests and
+           "isConfiguredFabricAPIKey(\"abc\\n123\")" in tests,
+           "unit tests should reject Fabric keys containing embedded whitespace")
     expect("isConfiguredFabricAPIKey(nil)" in tests and "isConfiguredFabricAPIKey(\"$(FABRIC_API_KEY)\")" in tests and
            "isConfiguredFabricAPIKey(\"prefix-$(FABRIC_API_KEY)\")" in tests,
            "unit tests should call the shared Fabric key validator")
@@ -400,6 +452,8 @@ def check_docs():
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     vendored_integrity_plan = read_text("docs/plans/2026-06-10-vendored-crash-sdk-integrity.md")
     hosted_xctest_plan = read_text(HOSTED_XCTEST_PLAN)
+    credential_whitespace_plan = read_text("docs/plans/2026-06-12-fabric-credential-whitespace.md")
+    simulator_reliability_plan = read_text("docs/plans/2026-06-12-hosted-simulator-startup-reliability.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -425,6 +479,7 @@ def check_docs():
         expect("named placeholder" in lowered, "{} should document named placeholder fragment handling".format(text_name))
         expect("build script placeholder" in lowered, "{} should document build script placeholder handling".format(text_name))
         expect("whitespace-only ci" in lowered, "{} should document whitespace-only CI secret handling".format(text_name))
+        expect("embedded whitespace" in lowered, "{} should document embedded credential whitespace handling".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -469,6 +524,7 @@ def check_docs():
     expect("named placeholder" in changes.lower(), "CHANGES should mention named placeholder fragment handling")
     expect("build script placeholder" in changes.lower(), "CHANGES should mention build script placeholder handling")
     expect("whitespace-only CI" in changes, "CHANGES should mention whitespace-only CI secret handling")
+    expect("embedded whitespace" in changes.lower(), "CHANGES should mention embedded credential whitespace handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -487,6 +543,12 @@ def check_docs():
     expect("status: completed" in hosted_xctest_plan and "make test" in hosted_xctest_plan and
            "hosted macOS XCTest run" in hosted_xctest_plan,
            "hosted XCTest plan should record executable test verification")
+    expect("status: completed" in credential_whitespace_plan and "hostile mutations" in credential_whitespace_plan,
+           "credential whitespace plan should record completed mutation verification")
+    expect("bounded retry" in simulator_reliability_plan and "successful push and pull-request workflows" in simulator_reliability_plan,
+           "simulator reliability plan should preserve bounded recovery and both hosted event gates")
+    expect("select an available iPhone simulator by UDID" in readme and "bounded fifteen-minute job" in readme,
+           "README should document deterministic bounded hosted simulator startup")
     expect(workflow == EXPECTED_WORKFLOW,
            "Check workflow should exactly match the bounded, credential-free XCTest contract")
 
