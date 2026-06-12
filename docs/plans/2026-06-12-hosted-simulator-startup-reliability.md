@@ -1,6 +1,6 @@
 # Hosted Simulator Startup Reliability
 
-status: implementation complete; hosted verification pending
+status: completed
 
 ## Context
 
@@ -66,6 +66,20 @@ Record the timeout cause, retained coverage, and both canonical hosted results.
   non-parallel test setting
 - `git diff --check`
 - successful push and pull-request workflows for the same commit
+
+## Verification Completed
+
+- `sh -n scripts/run-tests.sh`, Python compilation, all four Make gates,
+  vendored framework digest verification, and `git diff --check` passed.
+- Controlled runner tests covered normal explicit boot, failed readiness with
+  shutdown/retry, and a caller-supplied destination.
+- Five hostile mutations removing the boot wait, retry shutdown, UDID
+  destination, non-parallel setting, or fifteen-minute bound were rejected.
+- Pull-request run `27396341972` completed successfully on commit
+  `7cc026db8cf7ae38ef434b526c7cf7c60705f91e`; it selected a simulator by
+  UDID and executed all four XCTest cases with zero failures.
+- Push run `27396340857` completed successfully on the same commit and retained
+  the complete unsigned, credential-free XCTest gate.
 
 ## Boundaries
 
