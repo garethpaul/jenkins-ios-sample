@@ -38,10 +38,15 @@ Helpful reports include:
 - Runtime Fabric initialization should skip empty, whitespace-only, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
 - Testable Fabric API key validation should cover missing, blank, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values before Fabric starts.
 - Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
-- Run `make check` after changing Swift sources, plists, Xcode project metadata, Fabric/Crashlytics framework references, CI secret handling, or security docs.
-- The pinned macOS workflow receives no Fabric/Crashlytics secrets and only
-  parses project metadata; it does not build, sign, run vendored scripts, start
-  Crashlytics, launch a simulator, or upload symbols.
+- Run `make check` for the static baseline and `make test` for hosted/local
+  XCTest after changing Swift sources, plists, Xcode project metadata,
+  Fabric/Crashlytics framework references, CI secret handling, or security docs.
+- The pinned macOS workflow receives no Fabric/Crashlytics secrets, disables
+  persisted checkout credentials and code signing, and executes the Swift 5
+  XCTest suite. Placeholder values prevent the vendored upload tooling and
+  runtime Crashlytics startup from executing.
+- Hosted XCTest verifies the runtime placeholder guard, but it does not
+  establish that the retired vendored binaries are trustworthy or production-safe.
 - Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
 - Review found external API integrations or credential-adjacent configuration; changes in those areas should receive security-focused review before merge.
 - Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.

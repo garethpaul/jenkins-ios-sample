@@ -1,5 +1,14 @@
 # Changes
 
+## 2026-06-12
+
+- Migrated the app and XCTest target to Swift 5 with an iOS 12 deployment floor
+  while preserving guarded Fabric/Crashlytics startup behavior.
+- Added portable simulator discovery and changed pinned macOS CI from project
+  parsing to the executable Fabric API key validation XCTest suite.
+- Disabled persisted checkout credentials and retained unsigned, secret-free
+  hosted verification that skips the vendored upload script.
+
 ## 2026-06-10
 
 - Added SHA-256 integrity pinning for all vendored Fabric and Crashlytics

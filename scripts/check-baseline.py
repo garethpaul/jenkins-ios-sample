@@ -16,6 +16,79 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FAILURES = []
+HOSTED_XCTEST_PLAN = "docs/plans/2026-06-12-hosted-xctest.md"
+EXPECTED_MAKEFILE = """.PHONY: build check lint test
+
+lint: check
+
+test: check
+\t@if command -v xcodebuild >/dev/null 2>&1; then ./scripts/run-tests.sh; else printf '%s\\n' "Skipping XCTest: xcodebuild is not installed."; fi
+
+build: check
+
+check:
+\tpython3 scripts/check-baseline.py
+"""
+EXPECTED_TEST_RUNNER = """#!/bin/sh
+
+set -eu
+
+PROJECT=${XCODE_PROJECT:-Jenkins iOS Sample.xcodeproj}
+SCHEME=${XCODE_SCHEME:-Jenkins iOS Sample}
+CONFIGURATION=${CONFIGURATION:-Debug}
+
+if ! command -v xcodebuild >/dev/null 2>&1; then
+    printf '%s\\n' "xcodebuild is required to run Jenkins iOS Sample tests." >&2
+    exit 127
+fi
+
+if [ -n "${IOS_DESTINATION:-}" ]; then
+    DESTINATION=$IOS_DESTINATION
+elif [ -n "${IOS_SIMULATOR_NAME:-}" ]; then
+    DESTINATION="platform=iOS Simulator,name=${IOS_SIMULATOR_NAME}"
+else
+    SIMULATOR_NAME=$(xcrun simctl list devices available | awk -F '[()]' '/^[[:space:]]+iPhone/ { name=$1; sub(/^[[:space:]]+/, "", name); sub(/[[:space:]]+$/, "", name); print name; exit }')
+    if [ -z "$SIMULATOR_NAME" ]; then
+        printf '%s\\n' "No available iPhone simulator was found." >&2
+        exit 1
+    fi
+    DESTINATION="platform=iOS Simulator,name=${SIMULATOR_NAME}"
+fi
+
+xcodebuild \\
+    -project "$PROJECT" \\
+    -scheme "$SCHEME" \\
+    -configuration "$CONFIGURATION" \\
+    -destination "$DESTINATION" \\
+    CODE_SIGNING_ALLOWED=NO \\
+    test
+"""
+EXPECTED_WORKFLOW = """name: Check
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Validate baseline and XCTest
+        run: make test
+"""
 
 
 def rel(path):
@@ -129,8 +202,10 @@ def check_required_files():
         "docs/plans/2026-06-10-build-script-whitespace-secret-guard.md",
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-vendored-crash-sdk-integrity.md",
+        HOSTED_XCTEST_PLAN,
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
+        "scripts/run-tests.sh",
     ]
 
     for path in required:
@@ -182,7 +257,11 @@ def check_project_wiring():
     expect("Images.xcassets in Resources" in pbxproj, "Images.xcassets should be an app resource")
     expect('INFOPLIST_FILE = "Jenkins iOS Sample/Info.plist";' in pbxproj, "app plist should stay wired")
     expect('INFOPLIST_FILE = "Jenkins iOS SampleTests/Info.plist";' in pbxproj, "test plist should stay wired")
-    expect("IPHONEOS_DEPLOYMENT_TARGET = 8.3;" in pbxproj, "legacy deployment target should remain visible")
+    expect(pbxproj.count("IPHONEOS_DEPLOYMENT_TARGET = 12.0;") == 2 and
+           "IPHONEOS_DEPLOYMENT_TARGET = 8.3;" not in pbxproj,
+           "Xcode project should use the iOS 12 deployment target")
+    expect(pbxproj.count("SWIFT_VERSION = 5.0;") == 4,
+           "app and test configurations should use Swift 5")
     expect('CODE_SIGN_IDENTITY = "iPhone Developer";' in pbxproj, "sample code signing identity should remain visible")
     expect("ENABLE_TESTABILITY = YES;" in pbxproj, "app Debug build should keep testability enabled for XCTest")
     expect("$FABRIC_API_KEY" in pbxproj, "Fabric run script should use FABRIC_API_KEY")
@@ -195,10 +274,15 @@ def check_project_wiring():
     expect("is_placeholder_value()" in pbxproj and "normalized_value=$(printf '%s' \\\"$trimmed_value\\\"" in pbxproj and
            "tr '[:lower:]' '[:upper:]')" in pbxproj and "'$('" in pbxproj and
            "*FABRIC_API_KEY*" in pbxproj and "*CRASHLYTICS_BUILD_SECRET*" in pbxproj and
-           "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj,
+           "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj and
+           'if is_placeholder_value \\"$FABRIC_API_KEY\\" || is_placeholder_value \\"$CRASHLYTICS_BUILD_SECRET\\"; then' in pbxproj,
            "Fabric run script should skip empty, unresolved, named, and replacement placeholder values")
     expect(not re.search(r"Fabric\.framework/run\s+[0-9a-f]{40}\s+[0-9a-f]{64}", pbxproj), "Fabric run script should not commit raw key material")
     expect("Jenkins iOS SampleTests.xctest" in scheme, "shared Xcode scheme should include the test target")
+    expect(scheme.count('BlueprintIdentifier = "88C69EAE1B03CD1F001A9C82"') >= 2 and
+           scheme.count('BlueprintIdentifier = "88C69EC31B03CD20001A9C82"') >= 2 and
+           "<TestableReference" in scheme and 'skipped = "NO"' in scheme,
+           "shared scheme should build the app and execute Jenkins iOS SampleTests")
 
     tracked_xcuserdata = [path for path in tracked_paths() if "/xcuserdata/" in path]
     expect(not tracked_xcuserdata, "tracked xcuserdata should be moved to xcshareddata: {}".format(", ".join(tracked_xcuserdata)))
@@ -237,24 +321,24 @@ def check_swift_and_secret_guardrails():
     swift_paths = sorted(rel("Jenkins iOS Sample").glob("*.swift")) + sorted(rel("Jenkins iOS SampleTests").glob("*.swift"))
     source = "\n".join(strip_swift_comments(path.read_text(encoding="utf-8")) for path in swift_paths)
 
-    expect("Fabric.with([Crashlytics()])" in source, "AppDelegate should initialize Fabric/Crashlytics")
+    expect("Fabric.with([Crashlytics.sharedInstance()])" in source, "AppDelegate should initialize Fabric/Crashlytics")
     expect("if hasConfiguredFabricAPIKey()" in source, "AppDelegate should guard Fabric initialization with configured API key check")
     expect("func hasConfiguredFabricAPIKey() -> Bool" in source, "AppDelegate should keep the Fabric API key check explicit")
-    expect("func isConfiguredFabricAPIKey(apiKey: String?) -> Bool" in source,
+    expect("func isConfiguredFabricAPIKey(_ apiKey: String?) -> Bool" in source,
            "AppDelegate should expose a testable Fabric API key validator")
     expect("return isConfiguredFabricAPIKey(apiKey)" in source,
            "AppDelegate should share the testable Fabric API key validator")
-    expect("objectForInfoDictionaryKey(\"Fabric\")" in source and
-           "let trimmedAPIKey = apiKey.stringByTrimmingCharactersInSet" in source and
-           "let normalizedAPIKey = trimmedAPIKey.uppercaseString" in source and
-           "trimmedAPIKey.characters.count > 0" in source,
+    expect("object(forInfoDictionaryKey: \"Fabric\")" in source and
+           "let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)" in source and
+           "let normalizedAPIKey = trimmedAPIKey.uppercased()" in source and
+           "!trimmedAPIKey.isEmpty" in source,
            "AppDelegate should trim, normalize, and inspect the Fabric API key from Info.plist")
-    expect("trimmedAPIKey.rangeOfString(\"$(\") == nil" in source and
+    expect("trimmedAPIKey.range(of: \"$(\") == nil" in source and
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
            "AppDelegate should reject embedded unresolved, example, and replacement Fabric API key placeholders case-insensitively")
     expect("let placeholderFragments = [\"FABRIC_API_KEY\", \"CRASHLYTICS_BUILD_SECRET\"]" in source and
-           "normalizedAPIKey.rangeOfString(placeholderFragment) != nil" in source,
+           "normalizedAPIKey.range(of: placeholderFragment) != nil" in source,
            "AppDelegate should reject named Fabric and Crashlytics placeholder fragments")
     expect("Crashlytics.sharedInstance().crash()" not in source, "sample should not include forced crash behavior")
     expect(not re.search(r"\b(?:print|println|NSLog)\s*\(", source), "first-party Swift should not add console logging")
@@ -315,12 +399,18 @@ def check_docs():
     build_script_whitespace_plan = read_text("docs/plans/2026-06-10-build-script-whitespace-secret-guard.md")
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     vendored_integrity_plan = read_text("docs/plans/2026-06-10-vendored-crash-sdk-integrity.md")
+    hosted_xctest_plan = read_text(HOSTED_XCTEST_PLAN)
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
 
-    expect(".PHONY: build check lint test" in makefile and "lint test build: check" in makefile,
-           "Makefile should expose lint, test, build, and check verification gates")
+    test_runner = read_text("scripts/run-tests.sh")
+    expect(makefile == EXPECTED_MAKEFILE,
+           "Makefile should exactly preserve static and executable XCTest gates")
+    expect(test_runner == EXPECTED_TEST_RUNNER,
+           "test runner should exactly preserve portable unsigned XCTest execution")
+    expect(rel("scripts/run-tests.sh").stat().st_mode & 0o111,
+           "test runner should be executable")
 
     for text_name, text in (
         ("README.md", readme),
@@ -394,11 +484,11 @@ def check_docs():
            "hosted validation plan should be marked completed")
     expect("status: completed" in vendored_integrity_plan and "does not establish" in vendored_integrity_plan,
            "vendored crash SDK integrity plan should be marked completed and state its trust boundary")
-    expect("permissions:\n  contents: read" in workflow and "cancel-in-progress: true" in workflow and
-           "runs-on: macos-15" in workflow and "timeout-minutes: 10" in workflow and
-           "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10" in workflow and
-           "run: make check" in workflow,
-           "Check workflow should stay pinned, read-only, and bounded")
+    expect("status: completed" in hosted_xctest_plan and "make test" in hosted_xctest_plan and
+           "hosted macOS XCTest run" in hosted_xctest_plan,
+           "hosted XCTest plan should record executable test verification")
+    expect(workflow == EXPECTED_WORKFLOW,
+           "Check workflow should exactly match the bounded, credential-free XCTest contract")
 
     for pattern in ("*.local.xcconfig", "*.secrets.xcconfig", "FabricKeys.xcconfig", ".env", ".env.*", "__pycache__/", "*.pyc"):
         expect(pattern in gitignore, ".gitignore should keep {} out of git".format(pattern))
@@ -423,7 +513,7 @@ def main():
         expect(result.returncode == 0,
                "xcodebuild could not parse Jenkins iOS Sample.xcodeproj: {}".format(result.stderr.strip()))
     else:
-        print("xcodebuild unavailable; skipping legacy iOS build/test and using static baseline checks.")
+        print("xcodebuild unavailable; static iOS baseline only.")
 
     if FAILURES:
         print("Static baseline failed:")

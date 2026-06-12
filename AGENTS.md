@@ -19,6 +19,8 @@
 
 - Install dependencies: no repository-specific install command is documented.
 - Full baseline: `make check`
+- Hosted/local XCTest gate: `make test`
+- Simulator overrides: `IOS_DESTINATION` or `IOS_SIMULATOR_NAME`
 - Local Apple development: `open Jenkins iOS Sample.xcodeproj`
 - If a command above skips because a platform toolchain is missing, verify on a machine with that SDK before claiming platform behavior is tested.
 
