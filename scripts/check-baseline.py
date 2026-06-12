@@ -203,6 +203,7 @@ def check_required_files():
         "docs/plans/2026-06-10-hosted-project-validation.md",
         "docs/plans/2026-06-10-vendored-crash-sdk-integrity.md",
         HOSTED_XCTEST_PLAN,
+        "docs/plans/2026-06-12-fabric-credential-whitespace.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "scripts/run-tests.sh",
@@ -277,6 +278,8 @@ def check_project_wiring():
            "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj and
            'if is_placeholder_value \\"$FABRIC_API_KEY\\" || is_placeholder_value \\"$CRASHLYTICS_BUILD_SECRET\\"; then' in pbxproj,
            "Fabric run script should skip empty, unresolved, named, and replacement placeholder values")
+    expect('case \\"$trimmed_value\\" in' in pbxproj and "*[[:space:]]*)" in pbxproj,
+           "Fabric run script should reject whitespace remaining in trimmed credentials")
     expect(not re.search(r"Fabric\.framework/run\s+[0-9a-f]{40}\s+[0-9a-f]{64}", pbxproj), "Fabric run script should not commit raw key material")
     expect("Jenkins iOS SampleTests.xctest" in scheme, "shared Xcode scheme should include the test target")
     expect(scheme.count('BlueprintIdentifier = "88C69EAE1B03CD1F001A9C82"') >= 2 and
@@ -330,9 +333,10 @@ def check_swift_and_secret_guardrails():
            "AppDelegate should share the testable Fabric API key validator")
     expect("object(forInfoDictionaryKey: \"Fabric\")" in source and
            "let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)" in source and
+           "trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil" in source and
            "let normalizedAPIKey = trimmedAPIKey.uppercased()" in source and
            "!trimmedAPIKey.isEmpty" in source,
-           "AppDelegate should trim, normalize, and inspect the Fabric API key from Info.plist")
+           "AppDelegate should trim, reject remaining whitespace, normalize, and inspect the Fabric API key from Info.plist")
     expect("trimmedAPIKey.range(of: \"$(\") == nil" in source and
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
@@ -348,6 +352,11 @@ def check_swift_and_secret_guardrails():
     expect("testFabricAPIKeyValidationRejectsMissingOrBlankValues" in tests, "unit tests should cover missing and blank Fabric keys")
     expect("testFabricAPIKeyValidationRejectsPlaceholders" in tests, "unit tests should cover placeholder Fabric keys")
     expect("testFabricAPIKeyValidationAcceptsTrimmedRealValues" in tests, "unit tests should cover trimmed real Fabric keys")
+    expect("testFabricAPIKeyValidationRejectsEmbeddedWhitespace" in tests and
+           "isConfiguredFabricAPIKey(\"abc 123\")" in tests and
+           "isConfiguredFabricAPIKey(\"abc\\t123\")" in tests and
+           "isConfiguredFabricAPIKey(\"abc\\n123\")" in tests,
+           "unit tests should reject Fabric keys containing embedded whitespace")
     expect("isConfiguredFabricAPIKey(nil)" in tests and "isConfiguredFabricAPIKey(\"$(FABRIC_API_KEY)\")" in tests and
            "isConfiguredFabricAPIKey(\"prefix-$(FABRIC_API_KEY)\")" in tests,
            "unit tests should call the shared Fabric key validator")
@@ -400,6 +409,7 @@ def check_docs():
     hosted_validation_plan = read_text("docs/plans/2026-06-10-hosted-project-validation.md")
     vendored_integrity_plan = read_text("docs/plans/2026-06-10-vendored-crash-sdk-integrity.md")
     hosted_xctest_plan = read_text(HOSTED_XCTEST_PLAN)
+    credential_whitespace_plan = read_text("docs/plans/2026-06-12-fabric-credential-whitespace.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -425,6 +435,7 @@ def check_docs():
         expect("named placeholder" in lowered, "{} should document named placeholder fragment handling".format(text_name))
         expect("build script placeholder" in lowered, "{} should document build script placeholder handling".format(text_name))
         expect("whitespace-only ci" in lowered, "{} should document whitespace-only CI secret handling".format(text_name))
+        expect("embedded whitespace" in lowered, "{} should document embedded credential whitespace handling".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -469,6 +480,7 @@ def check_docs():
     expect("named placeholder" in changes.lower(), "CHANGES should mention named placeholder fragment handling")
     expect("build script placeholder" in changes.lower(), "CHANGES should mention build script placeholder handling")
     expect("whitespace-only CI" in changes, "CHANGES should mention whitespace-only CI secret handling")
+    expect("embedded whitespace" in changes.lower(), "CHANGES should mention embedded credential whitespace handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -487,6 +499,8 @@ def check_docs():
     expect("status: completed" in hosted_xctest_plan and "make test" in hosted_xctest_plan and
            "hosted macOS XCTest run" in hosted_xctest_plan,
            "hosted XCTest plan should record executable test verification")
+    expect("status: completed" in credential_whitespace_plan and "hostile mutations" in credential_whitespace_plan,
+           "credential whitespace plan should record completed mutation verification")
     expect(workflow == EXPECTED_WORKFLOW,
            "Check workflow should exactly match the bounded, credential-free XCTest contract")
 

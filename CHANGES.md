@@ -8,6 +8,8 @@
   parsing to the executable Fabric API key validation XCTest suite.
 - Disabled persisted checkout credentials and retained unsigned, secret-free
   hosted verification that skips the vendored upload script.
+- Rejected embedded whitespace in runtime Fabric API keys and both build-phase
+  credentials while preserving edge-trimmed real values.
 
 ## 2026-06-10
 

@@ -1,6 +1,6 @@
 # Fabric Credential Whitespace Guard
 
-status: planned
+status: completed
 
 ## Context
 
