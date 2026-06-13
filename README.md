@@ -51,6 +51,13 @@ make build
 make check
 ```
 
+The Make gates are location-independent. From another directory, pass this
+checkout's Makefile by absolute path, for example:
+
+```bash
+make -f /path/to/jenkins-ios-sample/Makefile check
+```
+
 The setup commands above are derived from repository files. Legacy mobile, Python, or JavaScript samples may require older SDKs or package versions than a modern workstation uses by default.
 
 For CI or local Xcode builds that run Fabric, provide `FABRIC_API_KEY` and
@@ -112,6 +119,8 @@ When the required SDK or runtime is unavailable, use static checks and source re
 
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing Swift, plist, project, framework-reference, CI-secret, or documentation changes.
+- The same gates can run outside the checkout with an absolute Makefile path,
+  such as `make -f /path/to/jenkins-ios-sample/Makefile check`.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.
 - See `VISION.md` for project direction and contribution guardrails.
 - See `docs/plans/2026-06-09-make-gate-aliases.md` for the local gate alias guardrail.

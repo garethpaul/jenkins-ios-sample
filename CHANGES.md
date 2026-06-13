@@ -2,6 +2,8 @@
 
 ## 2026-06-13
 
+- Made every Make verification alias resolve the checker and conditional XCTest
+  runner from the checkout, including absolute Makefile invocations elsewhere.
 - Rejected Unicode control and format characters in runtime Fabric API keys
   before the retired SDK can receive malformed configuration.
 

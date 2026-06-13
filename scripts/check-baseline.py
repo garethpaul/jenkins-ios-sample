@@ -17,17 +17,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FAILURES = []
 HOSTED_XCTEST_PLAN = "docs/plans/2026-06-12-hosted-xctest.md"
-EXPECTED_MAKEFILE = """.PHONY: build check lint test
+EXPECTED_MAKEFILE = """ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+
+.PHONY: build check lint test
 
 lint: check
 
 test: check
-\t@if command -v xcodebuild >/dev/null 2>&1; then ./scripts/run-tests.sh; else printf '%s\\n' "Skipping XCTest: xcodebuild is not installed."; fi
+\t@if command -v xcodebuild >/dev/null 2>&1; then cd "$(ROOT)" && ./scripts/run-tests.sh; else printf '%s\\n' "Skipping XCTest: xcodebuild is not installed."; fi
 
 build: check
 
 check:
-\tpython3 scripts/check-baseline.py
+\tpython3 "$(ROOT)/scripts/check-baseline.py"
 """
 EXPECTED_TEST_RUNNER = """#!/bin/sh
 
@@ -248,6 +250,7 @@ def check_required_files():
         "docs/plans/2026-06-12-fabric-credential-whitespace.md",
         "docs/plans/2026-06-12-hosted-simulator-startup-reliability.md",
         "docs/plans/2026-06-13-fabric-control-character-guard.md",
+        "docs/plans/2026-06-13-location-independent-make.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "scripts/run-tests.sh",
@@ -461,6 +464,7 @@ def check_docs():
     credential_whitespace_plan = read_text("docs/plans/2026-06-12-fabric-credential-whitespace.md")
     simulator_reliability_plan = read_text("docs/plans/2026-06-12-hosted-simulator-startup-reliability.md")
     control_character_plan = read_text("docs/plans/2026-06-13-fabric-control-character-guard.md")
+    location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -491,6 +495,8 @@ def check_docs():
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
+    expect("make -f /path/to/jenkins-ios-sample/Makefile check" in readme,
+           "README should document location-independent Makefile invocation")
     expect("make lint" in vision and "make test" in vision and "make build" in vision,
            "VISION should document the standard local verification gates")
     expect("make lint" in changes and "make test" in changes and "make build" in changes,
@@ -558,6 +564,10 @@ def check_docs():
            "simulator reliability plan should preserve bounded recovery and both hosted event gates")
     expect("status: completed" in control_character_plan and "hostile mutations" in control_character_plan,
            "Fabric control character plan should record completed mutation verification")
+    expect("status: completed" in location_independent_make_plan and
+           "root and external-directory" in location_independent_make_plan and
+           "six isolated hostile mutations" in location_independent_make_plan,
+           "location-independent Make plan should record completed root, external, and mutation verification")
     expect("select an available iPhone simulator by UDID" in readme and "bounded fifteen-minute job" in readme,
            "README should document deterministic bounded hosted simulator startup")
     expect(workflow == EXPECTED_WORKFLOW,
