@@ -1,6 +1,6 @@
 # Fabric API Key Control Character Guard
 
-status: planned
+status: completed
 
 ## Context
 
@@ -27,3 +27,22 @@ configuration.
 
 - Run all Make gates and available syntax, metadata, digest, mutation, diff,
   artifact, and secret scans.
+
+## Work Completed
+
+- Rejected Unicode control and format characters after outer whitespace
+  trimming and before placeholder normalization or SDK startup.
+- Added XCTest cases for null and bidirectional format controls while
+  preserving existing valid trimmed-value behavior.
+- Added mutation-sensitive static contracts and matching runtime credential
+  documentation.
+
+## Verification Completed
+
+- `make lint`, `make test`, `make build`, and `make check` passed locally; the
+  Linux environment truthfully skipped unavailable Xcode execution.
+- Python compilation, plist/XML/JSON/YAML parsing, vendored digest checks, and
+  `git diff --check` passed.
+- Six hostile mutations covering the source guard, XCTest method, null case,
+  format-control case, documentation contract, and completed plan evidence
+  were rejected.

@@ -36,6 +36,11 @@ final class Jenkins_iOS_SampleTests: XCTestCase {
         XCTAssertFalse(isConfiguredFabricAPIKey("abc\n123"))
     }
 
+    func testFabricAPIKeyValidationRejectsControlCharacters() {
+        XCTAssertFalse(isConfiguredFabricAPIKey("abc\u{0000}123"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("abc\u{202E}123"))
+    }
+
     func testFabricAPIKeyValidationAcceptsTrimmedRealValues() {
         XCTAssertTrue(isConfiguredFabricAPIKey(" abc123 "))
     }

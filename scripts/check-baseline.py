@@ -247,6 +247,7 @@ def check_required_files():
         HOSTED_XCTEST_PLAN,
         "docs/plans/2026-06-12-fabric-credential-whitespace.md",
         "docs/plans/2026-06-12-hosted-simulator-startup-reliability.md",
+        "docs/plans/2026-06-13-fabric-control-character-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "scripts/run-tests.sh",
@@ -377,6 +378,7 @@ def check_swift_and_secret_guardrails():
     expect("object(forInfoDictionaryKey: \"Fabric\")" in source and
            "let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)" in source and
            "trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil" in source and
+           "trimmedAPIKey.rangeOfCharacter(from: .controlCharacters) != nil" in source and
            "let normalizedAPIKey = trimmedAPIKey.uppercased()" in source and
            "!trimmedAPIKey.isEmpty" in source,
            "AppDelegate should trim, reject remaining whitespace, normalize, and inspect the Fabric API key from Info.plist")
@@ -400,6 +402,10 @@ def check_swift_and_secret_guardrails():
            "isConfiguredFabricAPIKey(\"abc\\t123\")" in tests and
            "isConfiguredFabricAPIKey(\"abc\\n123\")" in tests,
            "unit tests should reject Fabric keys containing embedded whitespace")
+    expect("testFabricAPIKeyValidationRejectsControlCharacters" in tests and
+           'isConfiguredFabricAPIKey("abc\\u{0000}123")' in tests and
+           'isConfiguredFabricAPIKey("abc\\u{202E}123")' in tests,
+           "unit tests should reject Fabric keys containing Unicode control or format characters")
     expect("isConfiguredFabricAPIKey(nil)" in tests and "isConfiguredFabricAPIKey(\"$(FABRIC_API_KEY)\")" in tests and
            "isConfiguredFabricAPIKey(\"prefix-$(FABRIC_API_KEY)\")" in tests,
            "unit tests should call the shared Fabric key validator")
@@ -454,6 +460,7 @@ def check_docs():
     hosted_xctest_plan = read_text(HOSTED_XCTEST_PLAN)
     credential_whitespace_plan = read_text("docs/plans/2026-06-12-fabric-credential-whitespace.md")
     simulator_reliability_plan = read_text("docs/plans/2026-06-12-hosted-simulator-startup-reliability.md")
+    control_character_plan = read_text("docs/plans/2026-06-13-fabric-control-character-guard.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -480,6 +487,7 @@ def check_docs():
         expect("build script placeholder" in lowered, "{} should document build script placeholder handling".format(text_name))
         expect("whitespace-only ci" in lowered, "{} should document whitespace-only CI secret handling".format(text_name))
         expect("embedded whitespace" in lowered, "{} should document embedded credential whitespace handling".format(text_name))
+        expect("unicode control" in lowered, "{} should document Unicode control character rejection".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -525,6 +533,7 @@ def check_docs():
     expect("build script placeholder" in changes.lower(), "CHANGES should mention build script placeholder handling")
     expect("whitespace-only CI" in changes, "CHANGES should mention whitespace-only CI secret handling")
     expect("embedded whitespace" in changes.lower(), "CHANGES should mention embedded credential whitespace handling")
+    expect("unicode control" in changes.lower(), "CHANGES should mention Unicode control character handling")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -547,6 +556,8 @@ def check_docs():
            "credential whitespace plan should record completed mutation verification")
     expect("bounded retry" in simulator_reliability_plan and "successful push and pull-request workflows" in simulator_reliability_plan,
            "simulator reliability plan should preserve bounded recovery and both hosted event gates")
+    expect("status: completed" in control_character_plan and "hostile mutations" in control_character_plan,
+           "Fabric control character plan should record completed mutation verification")
     expect("select an available iPhone simulator by UDID" in readme and "bounded fifteen-minute job" in readme,
            "README should document deterministic bounded hosted simulator startup")
     expect(workflow == EXPECTED_WORKFLOW,

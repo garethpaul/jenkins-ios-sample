@@ -37,8 +37,8 @@ Helpful reports include:
   whitespace-only CI secrets do not invoke the vendored Fabric script.
 - The build script should also reject embedded whitespace remaining in either
   credential after trimming so malformed tokens do not reach vendored code.
-- Runtime Fabric initialization should skip empty, whitespace-only, embedded whitespace, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
-- Testable Fabric API key validation should cover missing, blank, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values before Fabric starts.
+- Runtime Fabric initialization should skip empty, whitespace-only, embedded whitespace, Unicode control character, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
+- Testable Fabric API key validation should cover missing, blank, Unicode control characters, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values before Fabric starts.
 - Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
 - Run `make check` for the static baseline and `make test` for hosted/local
   XCTest after changing Swift sources, plists, Xcode project metadata,

@@ -19,6 +19,9 @@ func isConfiguredFabricAPIKey(_ apiKey: String?) -> Bool {
     if trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
         return false
     }
+    if trimmedAPIKey.rangeOfCharacter(from: .controlCharacters) != nil {
+        return false
+    }
 
     let normalizedAPIKey = trimmedAPIKey.uppercased()
     let placeholderFragments = ["FABRIC_API_KEY", "CRASHLYTICS_BUILD_SECRET"]

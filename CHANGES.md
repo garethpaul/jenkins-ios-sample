@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-13
+
+- Rejected Unicode control and format characters in runtime Fabric API keys
+  before the retired SDK can receive malformed configuration.
+
 ## 2026-06-12
 
 - Migrated the app and XCTest target to Swift 5 with an iOS 12 deployment floor
