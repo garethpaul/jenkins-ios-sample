@@ -75,6 +75,9 @@ ignored xcconfig based on `Jenkins iOS Sample/FabricKeys.xcconfig.example`.
   configured credentials.
 - The build script rejects embedded whitespace remaining after trimming either
   credential so malformed tokens do not reach the vendored Fabric script.
+- The build script requires a 40-hex Fabric API key and a 64-hex Crashlytics
+  build secret, rejecting control characters, non-hex values, and wrong-length
+  credentials before the vendored script runs.
 - Runtime Fabric initialization also skips when the app plist still contains an empty, whitespace-only, embedded whitespace, Unicode control character, placeholder, embedded placeholder, or named placeholder fragment API key.
 - Testable Fabric API key validation keeps the runtime guard covered by XCTest cases for missing, blank, embedded whitespace, Unicode control characters, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values.
 - The Xcode scheme is shared under `xcshareddata/xcschemes` so Jenkins and

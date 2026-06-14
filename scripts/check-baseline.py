@@ -251,9 +251,12 @@ def check_required_files():
         "docs/plans/2026-06-12-hosted-simulator-startup-reliability.md",
         "docs/plans/2026-06-13-fabric-control-character-guard.md",
         "docs/plans/2026-06-13-location-independent-make.md",
+        "docs/plans/2026-06-14-fabric-credential-format-guard.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "scripts/run-tests.sh",
+        "scripts/test-fabric-credentials.sh",
+        "scripts/validate-fabric-credentials.sh",
     ]
 
     for path in required:
@@ -314,19 +317,14 @@ def check_project_wiring():
     expect("ENABLE_TESTABILITY = YES;" in pbxproj, "app Debug build should keep testability enabled for XCTest")
     expect("$FABRIC_API_KEY" in pbxproj, "Fabric run script should use FABRIC_API_KEY")
     expect("$CRASHLYTICS_BUILD_SECRET" in pbxproj, "Fabric run script should use CRASHLYTICS_BUILD_SECRET")
-    expect("Skipping Fabric run script" in pbxproj, "Fabric run script should skip when secrets are absent")
+    expect("Skipping Fabric run script" in pbxproj, "Fabric run script should skip when secrets are invalid")
     expect("trim_value()" in pbxproj and "sed 's/^[[:space:]]*//;s/[[:space:]]*$//'" in pbxproj and
-           "trimmed_value=$(trim_value" in pbxproj and
+           "fabric_api_key=$(trim_value" in pbxproj and
            "./Fabric.framework/run \\\"$fabric_api_key\\\" \\\"$crashlytics_build_secret\\\"" in pbxproj,
-           "Fabric run script should trim CI values before placeholder checks and vendored invocation")
-    expect("is_placeholder_value()" in pbxproj and "normalized_value=$(printf '%s' \\\"$trimmed_value\\\"" in pbxproj and
-           "tr '[:lower:]' '[:upper:]')" in pbxproj and "'$('" in pbxproj and
-           "*FABRIC_API_KEY*" in pbxproj and "*CRASHLYTICS_BUILD_SECRET*" in pbxproj and
-           "YOUR_*|REPLACE_*" in pbxproj and "set real FABRIC_API_KEY" in pbxproj and
-           'if is_placeholder_value \\"$FABRIC_API_KEY\\" || is_placeholder_value \\"$CRASHLYTICS_BUILD_SECRET\\"; then' in pbxproj,
-           "Fabric run script should skip empty, unresolved, named, and replacement placeholder values")
-    expect('case \\"$trimmed_value\\" in' in pbxproj and "*[[:space:]]*)" in pbxproj,
-           "Fabric run script should reject whitespace remaining in trimmed credentials")
+           "Fabric run script should trim validated CI values before vendored invocation")
+    expect('if \\\"$SRCROOT/scripts/validate-fabric-credentials.sh\\\"; then' in pbxproj and
+           "40-hex FABRIC_API_KEY" in pbxproj and "64-hex CRASHLYTICS_BUILD_SECRET" in pbxproj,
+           "Fabric run script should require the executable credential format guard")
     expect(not re.search(r"Fabric\.framework/run\s+[0-9a-f]{40}\s+[0-9a-f]{64}", pbxproj), "Fabric run script should not commit raw key material")
     expect("Jenkins iOS SampleTests.xctest" in scheme, "shared Xcode scheme should include the test target")
     expect(scheme.count('BlueprintIdentifier = "88C69EAE1B03CD1F001A9C82"') >= 2 and
@@ -465,6 +463,7 @@ def check_docs():
     simulator_reliability_plan = read_text("docs/plans/2026-06-12-hosted-simulator-startup-reliability.md")
     control_character_plan = read_text("docs/plans/2026-06-13-fabric-control-character-guard.md")
     location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
+    credential_format_plan = read_text("docs/plans/2026-06-14-fabric-credential-format-guard.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -476,6 +475,28 @@ def check_docs():
            "test runner should exactly preserve portable unsigned XCTest execution")
     expect(rel("scripts/run-tests.sh").stat().st_mode & 0o111,
            "test runner should be executable")
+    credential_validator = read_text("scripts/validate-fabric-credentials.sh")
+    credential_tests = read_text("scripts/test-fabric-credentials.sh")
+    expect(rel("scripts/validate-fabric-credentials.sh").stat().st_mode & 0o111 and
+           rel("scripts/test-fabric-credentials.sh").stat().st_mode & 0o111,
+           "Fabric credential validator and tests should be executable")
+    expect('grep -Eq "^[0-9A-Fa-f]{$expected_length}$"' in credential_validator and
+           'is_hex_value "${FABRIC_API_KEY-}" 40' in credential_validator and
+           'is_hex_value "${CRASHLYTICS_BUILD_SECRET-}" 64' in credential_validator,
+           "Fabric credential validator should enforce exact hexadecimal shapes")
+    expect("control character" in credential_tests and "non-hex key" in credential_tests and
+           "short key" in credential_tests and "non-hex secret" in credential_tests and
+           "short secret" in credential_tests,
+           "Fabric credential tests should cover malformed byte, alphabet, and length cases")
+    credential_test_result = subprocess.run(
+        [str(rel("scripts/test-fabric-credentials.sh"))],
+        cwd=str(ROOT),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        universal_newlines=True,
+    )
+    expect(credential_test_result.returncode == 0,
+           "Fabric credential executable tests should pass: {}".format(credential_test_result.stdout.strip()))
 
     for text_name, text in (
         ("README.md", readme),
@@ -568,6 +589,10 @@ def check_docs():
            "root and external-directory" in location_independent_make_plan and
            "six isolated hostile mutations" in location_independent_make_plan,
            "location-independent Make plan should record completed root, external, and mutation verification")
+    expect("status: completed" in credential_format_plan and
+           "hostile mutations" in credential_format_plan and
+           "Fabric credential validation tests passed" in credential_format_plan,
+           "Fabric credential format plan should record completed executable and mutation verification")
     expect("select an available iPhone simulator by UDID" in readme and "bounded fifteen-minute job" in readme,
            "README should document deterministic bounded hosted simulator startup")
     expect(workflow == EXPECTED_WORKFLOW,

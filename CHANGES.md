@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-14
+
+- Required exact 40-hex Fabric API keys and 64-hex Crashlytics build secrets
+  before invoking the retired vendored upload script.
+
 ## 2026-06-13
 
 - Made every Make verification alias resolve the checker and conditional XCTest
