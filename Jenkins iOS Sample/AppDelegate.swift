@@ -16,6 +16,9 @@ func isConfiguredFabricAPIKey(_ apiKey: String?) -> Bool {
     }
 
     let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+    if apiKey != trimmedAPIKey {
+        return false
+    }
     if trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
         return false
     }

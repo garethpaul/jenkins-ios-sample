@@ -35,7 +35,7 @@ Priority:
 - Validate exact 40-hex and 64-hex build credential shapes before vendored code
 - Skip runtime Fabric initialization when the plist contains a placeholder API key, whitespace-only value, or embedded whitespace
 - Reject Unicode control characters in runtime Fabric API keys before Crashlytics startup
-- Require an exact 40-hex runtime Fabric API key after trimming before Crashlytics startup
+- Require the original runtime Fabric API key to be whitespace-free and exactly 40 hex characters before Crashlytics startup
 - Preserve testable Fabric API key validation for the runtime startup guard
 - Keep embedded placeholder and case-insensitive placeholder rejection before Crashlytics startup
 - Reject named placeholder fragments such as `FABRIC_API_KEY` before Crashlytics startup

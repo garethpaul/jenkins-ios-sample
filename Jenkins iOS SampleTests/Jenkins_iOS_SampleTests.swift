@@ -41,12 +41,20 @@ final class Jenkins_iOS_SampleTests: XCTestCase {
         XCTAssertFalse(isConfiguredFabricAPIKey("abc\u{202E}123"))
     }
 
-    func testFabricAPIKeyValidationAcceptsExactTrimmedHexValues() {
+    func testFabricAPIKeyValidationAcceptsExactHexValues() {
         let lowercaseKey = String(repeating: "a", count: 40)
         let uppercaseKey = String(repeating: "A", count: 40)
 
         XCTAssertTrue(isConfiguredFabricAPIKey(lowercaseKey))
-        XCTAssertTrue(isConfiguredFabricAPIKey(" \(uppercaseKey) "))
+        XCTAssertTrue(isConfiguredFabricAPIKey(uppercaseKey))
+    }
+
+    func testFabricAPIKeyValidationRejectsEdgeWhitespace() {
+        let validKey = String(repeating: "a", count: 40)
+
+        XCTAssertFalse(isConfiguredFabricAPIKey(" \(validKey)"))
+        XCTAssertFalse(isConfiguredFabricAPIKey("\(validKey) "))
+        XCTAssertFalse(isConfiguredFabricAPIKey("\n\(validKey)\t"))
     }
 
     func testFabricAPIKeyValidationRejectsWrongLengthsAndNonHexValues() {

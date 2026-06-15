@@ -1,6 +1,6 @@
 # Runtime Fabric API Key Whitespace Boundary
 
-status: in_progress
+status: completed
 
 ## Context
 
@@ -39,16 +39,34 @@ vendored binaries.
   from an external directory.
 - Run POSIX shell syntax, Python compilation, and the executable Fabric
   credential tests.
-- Use isolated hostile mutations to restore edge trimming, remove exact-value
+- Use five isolated hostile mutations to restore edge trimming, remove exact-value
   equality, weaken focused tests, falsify plan evidence, and desynchronize
   documentation; require the baseline to reject each mutation.
-- Audit the exact diff, generated artifacts, vendored binary changes, file
+- Run `git diff --check` and audit the exact diff, generated artifacts, vendored binary changes, file
   modes, and credential-shaped additions before committing intended paths.
 
 ## Work Completed
 
-Pending implementation.
+- Required the original bundle value to equal its whitespace-trimmed form
+  before runtime Fabric API key validation can succeed.
+- Preserved exact lowercase and uppercase 40-hex acceptance while rejecting
+  leading, trailing, embedded, and control-character whitespace.
+- Added focused XCTest intent for leading space, trailing space, and mixed
+  newline/tab boundaries.
+- Extended the static baseline to enforce the source predicate, exact negative
+  assertions, completed plan evidence, and synchronized guidance.
 
 ## Verification Completed
 
-Pending implementation and validation.
+- All four Make gates passed in a disposable Git-backed copy of the exact
+  worktree content; Linux correctly reported that executable XCTest requires
+  Xcode.
+- The absolute Makefile check passed from an external directory.
+- POSIX shell syntax, Python compilation, and the executable Fabric credential
+  tests passed.
+- Five isolated hostile mutations covering source exact-value equality, leading
+  and trailing negative assertions, plan evidence, and documentation were
+  rejected.
+- `git diff --check`, generated-artifact inspection, vendored-binary review,
+  file-mode review, and credential-shaped addition review completed without
+  findings.

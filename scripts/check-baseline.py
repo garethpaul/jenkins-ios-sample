@@ -379,11 +379,12 @@ def check_swift_and_secret_guardrails():
            "AppDelegate should share the testable Fabric API key validator")
     expect("object(forInfoDictionaryKey: \"Fabric\")" in source and
            "let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)" in source and
+           "if apiKey != trimmedAPIKey" in source and
            "trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil" in source and
            "trimmedAPIKey.rangeOfCharacter(from: .controlCharacters) != nil" in source and
            "let normalizedAPIKey = trimmedAPIKey.uppercased()" in source and
            "!trimmedAPIKey.isEmpty" in source,
-           "AppDelegate should trim, reject remaining whitespace, normalize, and inspect the Fabric API key from Info.plist")
+           "AppDelegate should reject edge and embedded whitespace, normalize, and inspect the exact Fabric API key from Info.plist")
     expect("trimmedAPIKey.range(of: \"$(\") == nil" in source and
            "normalizedAPIKey != \"YOUR_FABRIC_API_KEY\"" in source and
            "!normalizedAPIKey.hasPrefix(\"REPLACE_\")" in source,
@@ -402,11 +403,16 @@ def check_swift_and_secret_guardrails():
     expect("@testable import Jenkins_iOS_Sample" in tests, "unit tests should import the app module as testable")
     expect("testFabricAPIKeyValidationRejectsMissingOrBlankValues" in tests, "unit tests should cover missing and blank Fabric keys")
     expect("testFabricAPIKeyValidationRejectsPlaceholders" in tests, "unit tests should cover placeholder Fabric keys")
-    expect("testFabricAPIKeyValidationAcceptsExactTrimmedHexValues" in tests and
+    expect("testFabricAPIKeyValidationAcceptsExactHexValues" in tests and
            'let lowercaseKey = String(repeating: "a", count: 40)' in tests and
            'let uppercaseKey = String(repeating: "A", count: 40)' in tests and
-           'isConfiguredFabricAPIKey(" \\(uppercaseKey) ")' in tests,
-           "unit tests should accept exact lowercase and edge-trimmed uppercase Fabric keys")
+           "isConfiguredFabricAPIKey(uppercaseKey)" in tests,
+           "unit tests should accept exact lowercase and uppercase Fabric keys")
+    expect("testFabricAPIKeyValidationRejectsEdgeWhitespace" in tests and
+           'XCTAssertFalse(isConfiguredFabricAPIKey(" \\(validKey)"))' in tests and
+           'XCTAssertFalse(isConfiguredFabricAPIKey("\\(validKey) "))' in tests and
+           'XCTAssertFalse(isConfiguredFabricAPIKey("\\n\\(validKey)\\t"))' in tests,
+           "unit tests should reject leading and trailing Fabric key whitespace")
     expect("testFabricAPIKeyValidationRejectsWrongLengthsAndNonHexValues" in tests and
            'isConfiguredFabricAPIKey(String(repeating: "a", count: 39))' in tests and
            'isConfiguredFabricAPIKey(String(repeating: "a", count: 41))' in tests and
@@ -456,6 +462,7 @@ def check_swift_and_secret_guardrails():
 
 
 def check_docs():
+    agents = read_text("AGENTS.md")
     readme = read_text("README.md")
     vision = read_text("VISION.md")
     security = read_text("SECURITY.md")
@@ -479,6 +486,7 @@ def check_docs():
     location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
     credential_format_plan = read_text("docs/plans/2026-06-14-fabric-credential-format-guard.md")
     runtime_format_plan = read_text("docs/plans/2026-06-15-runtime-fabric-key-format.md")
+    runtime_whitespace_plan = read_text("docs/plans/2026-06-15-runtime-fabric-key-whitespace.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -530,6 +538,8 @@ def check_docs():
         expect("unicode control" in lowered, "{} should document Unicode control character rejection".format(text_name))
         expect("exact 40-hex" in lowered,
                "{} should document exact runtime Fabric API key validation".format(text_name))
+        expect("whitespace-free" in lowered,
+               "{} should document rejection of edge whitespace in runtime Fabric API keys".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -580,6 +590,10 @@ def check_docs():
     expect("unicode control" in changes.lower(), "CHANGES should mention Unicode control character handling")
     expect("exact 40-hex runtime Fabric API key" in changes,
            "CHANGES should mention exact runtime Fabric API key validation")
+    expect("same bundle value consumed" in changes.lower(),
+           "CHANGES should explain why runtime Fabric edge whitespace is rejected")
+    expect("original bundle value consumed by Fabric" in agents,
+           "AGENTS should preserve the exact runtime Fabric consumer boundary")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -618,6 +632,12 @@ def check_docs():
            "Five isolated hostile mutations" in runtime_format_plan and
            "git diff --check" in runtime_format_plan,
            "runtime Fabric key format plan should record completed gate and mutation verification")
+    expect("status: completed" in runtime_whitespace_plan and
+           "all four Make gates" in runtime_whitespace_plan and
+           "absolute Makefile check" in runtime_whitespace_plan and
+           "five isolated hostile mutations" in runtime_whitespace_plan and
+           "git diff --check" in runtime_whitespace_plan,
+           "runtime Fabric key whitespace plan should record completed gate and mutation verification")
     expect("select an available iPhone simulator by UDID" in readme and "bounded fifteen-minute job" in readme,
            "README should document deterministic bounded hosted simulator startup")
     expect(workflow == EXPECTED_WORKFLOW,

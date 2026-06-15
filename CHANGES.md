@@ -2,8 +2,10 @@
 
 ## 2026-06-15
 
-- Required an exact 40-hex runtime Fabric API key after trimming before the
-  retired Crashlytics SDK can initialize.
+- Rejected leading and trailing whitespace in runtime Fabric API keys so the
+  guard validates the same bundle value consumed by the retired SDK.
+- Required an exact 40-hex runtime Fabric API key before the retired Crashlytics
+  SDK can initialize.
 
 ## 2026-06-14
 
