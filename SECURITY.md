@@ -41,7 +41,8 @@ Helpful reports include:
   secret shapes without printing credential values or passing them as
   arguments to the validator.
 - Runtime Fabric initialization should skip empty, whitespace-only, embedded whitespace, Unicode control character, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
-- Testable Fabric API key validation should cover missing, blank, Unicode control characters, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values before Fabric starts.
+- Runtime Fabric startup requires an exact 40-hex API key after trimming so malformed keys cannot initialize Crashlytics even when build-phase upload is skipped.
+- Testable Fabric API key validation should cover missing, blank, Unicode control characters, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, exact lowercase and uppercase values, wrong lengths, and non-hex values before Fabric starts.
 - Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
 - Run `make check` for the static baseline and `make test` for hosted/local
   XCTest after changing Swift sources, plists, Xcode project metadata,

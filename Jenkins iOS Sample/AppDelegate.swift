@@ -25,6 +25,7 @@ func isConfiguredFabricAPIKey(_ apiKey: String?) -> Bool {
 
     let normalizedAPIKey = trimmedAPIKey.uppercased()
     let placeholderFragments = ["FABRIC_API_KEY", "CRASHLYTICS_BUILD_SECRET"]
+    let hexadecimalCharacters = CharacterSet(charactersIn: "0123456789abcdefABCDEF")
 
     for placeholderFragment in placeholderFragments {
         if normalizedAPIKey.range(of: placeholderFragment) != nil {
@@ -33,6 +34,8 @@ func isConfiguredFabricAPIKey(_ apiKey: String?) -> Bool {
     }
 
     return !trimmedAPIKey.isEmpty &&
+        trimmedAPIKey.count == 40 &&
+        trimmedAPIKey.unicodeScalars.allSatisfy { hexadecimalCharacters.contains($0) } &&
         trimmedAPIKey.range(of: "$(") == nil &&
         normalizedAPIKey != "YOUR_FABRIC_API_KEY" &&
         !normalizedAPIKey.hasPrefix("REPLACE_")

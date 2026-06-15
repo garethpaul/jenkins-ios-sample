@@ -1,6 +1,6 @@
 # Runtime Fabric API Key Format Guard
 
-status: in_progress
+status: completed
 
 ## Context
 
@@ -44,8 +44,23 @@ credentials, contacting retired services, or changing vendored binaries.
 
 ## Work Completed
 
-Pending implementation.
+- Required the trimmed runtime Fabric API key to contain exactly 40 hexadecimal
+  characters before the retired Crashlytics SDK can initialize.
+- Added focused XCTest intent for exact lowercase, edge-trimmed uppercase,
+  short, long, and non-hex values.
+- Added static contracts for the runtime predicate, focused tests, completed
+  plan evidence, and synchronized operator documentation.
 
 ## Verification Completed
 
-Pending implementation and validation.
+- All four Make gates passed from the repository.
+- The absolute Makefile check passed from an external directory.
+- `python3 -m py_compile` and POSIX shell syntax validation passed without
+  retaining generated artifacts.
+- The executable Fabric credential validation tests passed.
+- Five isolated hostile mutations covering runtime length, runtime alphabet,
+  focused tests, plan evidence, and documentation were rejected.
+- `git diff --check`, generated-artifact inspection, credential-shaped addition
+  review, and vendored-binary diff inspection passed.
+- XCTest execution remains unavailable on this Linux host; the focused cases
+  are intended for the existing bounded macOS hosted job.

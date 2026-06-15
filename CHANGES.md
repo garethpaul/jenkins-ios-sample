@@ -1,5 +1,10 @@
 # Changes
 
+## 2026-06-15
+
+- Required an exact 40-hex runtime Fabric API key after trimming before the
+  retired Crashlytics SDK can initialize.
+
 ## 2026-06-14
 
 - Required exact 40-hex Fabric API keys and 64-hex Crashlytics build secrets

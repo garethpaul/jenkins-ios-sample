@@ -252,6 +252,7 @@ def check_required_files():
         "docs/plans/2026-06-13-fabric-control-character-guard.md",
         "docs/plans/2026-06-13-location-independent-make.md",
         "docs/plans/2026-06-14-fabric-credential-format-guard.md",
+        "docs/plans/2026-06-15-runtime-fabric-key-format.md",
         "docs/readme-overview.svg",
         "scripts/check-baseline.py",
         "scripts/run-tests.sh",
@@ -390,6 +391,10 @@ def check_swift_and_secret_guardrails():
     expect("let placeholderFragments = [\"FABRIC_API_KEY\", \"CRASHLYTICS_BUILD_SECRET\"]" in source and
            "normalizedAPIKey.range(of: placeholderFragment) != nil" in source,
            "AppDelegate should reject named Fabric and Crashlytics placeholder fragments")
+    expect('let hexadecimalCharacters = CharacterSet(charactersIn: "0123456789abcdefABCDEF")' in source and
+           "trimmedAPIKey.count == 40" in source and
+           "trimmedAPIKey.unicodeScalars.allSatisfy { hexadecimalCharacters.contains($0) }" in source,
+           "AppDelegate should require an exact 40-hex runtime Fabric API key")
     expect("Crashlytics.sharedInstance().crash()" not in source, "sample should not include forced crash behavior")
     expect(not re.search(r"\b(?:print|println|NSLog)\s*\(", source), "first-party Swift should not add console logging")
 
@@ -397,7 +402,16 @@ def check_swift_and_secret_guardrails():
     expect("@testable import Jenkins_iOS_Sample" in tests, "unit tests should import the app module as testable")
     expect("testFabricAPIKeyValidationRejectsMissingOrBlankValues" in tests, "unit tests should cover missing and blank Fabric keys")
     expect("testFabricAPIKeyValidationRejectsPlaceholders" in tests, "unit tests should cover placeholder Fabric keys")
-    expect("testFabricAPIKeyValidationAcceptsTrimmedRealValues" in tests, "unit tests should cover trimmed real Fabric keys")
+    expect("testFabricAPIKeyValidationAcceptsExactTrimmedHexValues" in tests and
+           'let lowercaseKey = String(repeating: "a", count: 40)' in tests and
+           'let uppercaseKey = String(repeating: "A", count: 40)' in tests and
+           'isConfiguredFabricAPIKey(" \\(uppercaseKey) ")' in tests,
+           "unit tests should accept exact lowercase and edge-trimmed uppercase Fabric keys")
+    expect("testFabricAPIKeyValidationRejectsWrongLengthsAndNonHexValues" in tests and
+           'isConfiguredFabricAPIKey(String(repeating: "a", count: 39))' in tests and
+           'isConfiguredFabricAPIKey(String(repeating: "a", count: 41))' in tests and
+           'isConfiguredFabricAPIKey(String(repeating: "a", count: 39) + "g")' in tests,
+           "unit tests should reject short, long, and non-hex Fabric keys")
     expect("testFabricAPIKeyValidationRejectsEmbeddedWhitespace" in tests and
            "isConfiguredFabricAPIKey(\"abc 123\")" in tests and
            "isConfiguredFabricAPIKey(\"abc\\t123\")" in tests and
@@ -464,6 +478,7 @@ def check_docs():
     control_character_plan = read_text("docs/plans/2026-06-13-fabric-control-character-guard.md")
     location_independent_make_plan = read_text("docs/plans/2026-06-13-location-independent-make.md")
     credential_format_plan = read_text("docs/plans/2026-06-14-fabric-credential-format-guard.md")
+    runtime_format_plan = read_text("docs/plans/2026-06-15-runtime-fabric-key-format.md")
     workflow = read_text(".github/workflows/check.yml")
     gitignore = read_text(".gitignore")
     makefile = read_text("Makefile")
@@ -513,6 +528,8 @@ def check_docs():
         expect("whitespace-only ci" in lowered, "{} should document whitespace-only CI secret handling".format(text_name))
         expect("embedded whitespace" in lowered, "{} should document embedded credential whitespace handling".format(text_name))
         expect("unicode control" in lowered, "{} should document Unicode control character rejection".format(text_name))
+        expect("exact 40-hex" in lowered,
+               "{} should document exact runtime Fabric API key validation".format(text_name))
 
     expect("make lint" in readme and "make test" in readme and "make build" in readme,
            "README should document the standard local verification gates")
@@ -561,6 +578,8 @@ def check_docs():
     expect("whitespace-only CI" in changes, "CHANGES should mention whitespace-only CI secret handling")
     expect("embedded whitespace" in changes.lower(), "CHANGES should mention embedded credential whitespace handling")
     expect("unicode control" in changes.lower(), "CHANGES should mention Unicode control character handling")
+    expect("exact 40-hex runtime Fabric API key" in changes,
+           "CHANGES should mention exact runtime Fabric API key validation")
     expect("status: completed" in plan, "baseline plan should be marked completed")
     expect("status: completed" in runtime_plan, "runtime Fabric placeholder guard plan should be marked completed")
     expect("status: completed" in trim_plan, "Fabric key trim guard plan should be marked completed")
@@ -593,6 +612,12 @@ def check_docs():
            "hostile mutations" in credential_format_plan and
            "Fabric credential validation tests passed" in credential_format_plan,
            "Fabric credential format plan should record completed executable and mutation verification")
+    expect("status: completed" in runtime_format_plan and
+           "All four Make gates" in runtime_format_plan and
+           "absolute Makefile check" in runtime_format_plan and
+           "Five isolated hostile mutations" in runtime_format_plan and
+           "git diff --check" in runtime_format_plan,
+           "runtime Fabric key format plan should record completed gate and mutation verification")
     expect("select an available iPhone simulator by UDID" in readme and "bounded fifteen-minute job" in readme,
            "README should document deterministic bounded hosted simulator startup")
     expect(workflow == EXPECTED_WORKFLOW,
