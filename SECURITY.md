@@ -8,7 +8,10 @@ integration passed a Fabric API key and Crashlytics build secret as process
 arguments to an unsupported vendored binary. Those historical credentials must
 be revoked or deleted at the retired provider even if the repositories or apps
 are no longer active. Review provider audit logs for unexpected symbol uploads
-or account activity before resolving any secret-scanning alert.
+or account activity before resolving any secret-scanning alert. The repository
+cannot verify provider-side rotation, revocation, deletion, or audit-log review,
+so removal from the current tree must not be described as proof that any of
+those actions occurred.
 
 Do not restore the old frameworks or upload scripts. A replacement provider
 requires a separate dependency, privacy, network, credential, and retention
@@ -16,7 +19,7 @@ review.
 
 ## Supported Versions
 
-The supported security scope for `jenkins-ios-sample` is the current default branch, `master`. Older commits, tags, branches, forks, demos, and generated artifacts are not actively supported unless the repository explicitly marks them as maintained.
+The supported security scope for `jenkins-ios-sample` is the current default branch, `master`. Older commits, tags, branches, forks, demos, and generated artifacts are not actively supported unless the repository explicitly marks them as maintained. As of June 19, 2026, GitHub reports this public repository as unarchived; that hosting state does not make this legacy sample production-supported software.
 
 Project summary: Jenkins iOS Sample
 
@@ -38,43 +41,42 @@ Helpful reports include:
 
 ## Project Security Posture
 
-- This repository appears to be an Apple platform application or Swift sample. The active security scope is the code and documentation on the default branch.
-- Fabric and Crashlytics configuration is sensitive. `FABRIC_API_KEY` and `CRASHLYTICS_BUILD_SECRET` must come from CI secrets, xcodebuild settings, local keychains, or ignored local configuration, not committed source.
-- `VENDORED_FRAMEWORKS.sha256` pins every committed Fabric/Crashlytics framework,
-  installer, and submission executable. Digest verification detects drift but
-  does not establish vendor provenance, patch vulnerabilities, or make the
-  retired SDK suitable for production.
-- The Fabric build script placeholder guard should skip unresolved, named,
-  example, or replacement placeholder values before invoking the vendored
-  Fabric script.
-- The Fabric build script should trim CI-provided values first so
-  whitespace-only CI secrets do not invoke the vendored Fabric script.
-- The build script should also reject embedded whitespace remaining in either
-  credential after trimming so malformed tokens do not reach vendored code.
-- The build script must validate the legacy 40-hex API key and 64-hex build
-  secret shapes without printing credential values or passing them as
-  arguments to the validator.
-- Runtime Fabric initialization should skip empty, whitespace-only, embedded whitespace, Unicode control character, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
-- Runtime Fabric startup requires the original bundle value to be a whitespace-free, exact 40-hex API key so validation matches the value consumed by the SDK even when build-phase upload is skipped.
-- Testable Fabric API key validation should cover missing, blank, edge and embedded whitespace, Unicode control characters, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, exact lowercase and uppercase values, wrong lengths, and non-hex values before Fabric starts.
-- Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
-- Run `make check` for the static baseline and `make test` for hosted/local
-  XCTest after changing Swift sources, plists, Xcode project metadata,
-  Fabric/Crashlytics framework references, CI secret handling, or security docs.
-- The pinned macOS workflow receives no Fabric/Crashlytics secrets, disables
-  persisted checkout credentials and code signing, and executes the Swift 5
-  XCTest suite. Placeholder values prevent the vendored upload tooling and
-  runtime Crashlytics startup from executing.
+- The current default branch is a legacy UIKit sample with the retired
+  Fabric/Crashlytics integration removed. It has no provider frameworks,
+  executables, plist configuration, runtime initialization, Xcode upload phase,
+  credential input, or provider workflow.
+- Repository policy checks reject reintroduced Fabric/Crashlytics artifacts,
+  runtime initialization, plist configuration, upload execution, Xcode shell
+  phases, pinned signing identities, workflow secret references, and workflow
+  signing, archiving, or upload commands.
+- `make check` validates that policy together with required project files,
+  parseable plist/XML/JSON metadata, the shared XCTest scheme, Swift 5 project
+  settings, the iOS 12 deployment target, and the absence of tracked
+  `xcuserdata`.
+- `make test` runs the baseline first and, when `xcodebuild` is available,
+  invokes simulator XCTest with the retired provider environment variables
+  unset and code signing disabled. Without `xcodebuild`, the local target prints
+  a skip message and exits successfully; use the pinned hosted workflow for
+  authoritative XCTest evidence. The target does not archive, export, notarize,
+  or upload an application.
+- The pinned macOS workflow uses read-only repository permissions, disables
+  persisted checkout credentials, references no repository secrets, and runs
+  `make test`.
 - Hosted XCTest selects one simulator by UDID, waits for an explicit bounded
   boot with one recovery attempt, and disables parallel workers without
   skipping any validation cases.
-- Hosted XCTest verifies the runtime placeholder guard, but it does not
-  establish that the retired vendored binaries are trustworthy or production-safe.
-- Review found authentication, token, or session-related code paths; changes in those areas should receive security-focused review before merge.
-- Review found external API integrations or credential-adjacent configuration; changes in those areas should receive security-focused review before merge.
-- Review found network clients, sockets, web APIs, or service endpoints; changes in those areas should receive security-focused review before merge.
-- Review found mobile permission or privacy-sensitive data handling; changes in those areas should receive security-focused review before merge.
-- Review found file, document, data, or media parsing flows; changes in those areas should receive security-focused review before merge.
+- Signing identities, provisioning profiles, `.env` files, local xcconfig files,
+  and replacement provider credentials must stay out of git.
+- Historical credentials and retired binaries may remain visible in git history.
+  Their removal from the current tree reduces the active attack surface but
+  does not establish provider-side credential rotation, revocation, deletion,
+  or absence of past misuse.
+- Current checks cover repository policy, metadata contracts, and unsigned
+  simulator XCTest. They do not establish device-build compatibility,
+  production signing, archive/export readiness, App Store suitability, trust in
+  historical vendored binaries, or safety of unsupported historical revisions.
+- Reintroducing Fabric/Crashlytics or adding another reporting provider requires
+  a separate dependency, privacy, network, credential, and retention review.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
 
 ## Mobile Privacy Notes
