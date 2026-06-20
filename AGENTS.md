@@ -2,7 +2,7 @@
 
 ## Repository purpose
 
-`garethpaul/jenkins-ios-sample` is an Apple platform application or Swift sample. Jenkins iOS Sample
+`garethpaul/jenkins-ios-sample` is a preserved Swift iOS CI sample. The retired Fabric/Crashlytics integration must remain removed.
 
 ## Project structure
 
@@ -10,8 +10,6 @@
 - `scripts` - baseline checks and helper scripts
 - `docs` - plans, notes, and generated README assets
 - `Jenkins iOS Sample.xcodeproj` - Xcode project
-- `Crashlytics.framework` - repository source or sample assets
-- `Fabric.framework` - repository source or sample assets
 - `Jenkins iOS Sample` - repository source or sample assets
 - `Jenkins iOS SampleTests` - repository source or sample assets
 
@@ -44,9 +42,9 @@
 
 ## Safety and gotchas
 
-- Fabric and Crashlytics values belong in CI secret storage, local keychains, xcodebuild settings, or ignored local configuration only.
-- Do not commit Fabric API keys, Crashlytics build secrets, signing identities, provisioning profiles, `.env` files, or local xcconfig files.
-- Local builds with a placeholder API key should skip Fabric initialization instead of starting Crashlytics with unresolved configuration.
+- Do not restore Fabric/Crashlytics binaries, runtime initialization, upload phases, credentials, signing identities, provisioning profiles, `.env` files, or local xcconfig files.
+- Local and hosted verification must remain unsigned and must not archive or upload artifacts.
+- Runtime Fabric startup requires an exact, whitespace-free 40-hex API key; keep the source, focused tests, and baseline contract aligned with the original bundle value consumed by Fabric.
 - This looks like an Apple platform project or sample. Xcode, Swift, CocoaPods, and deployment target versions may need to match the original project era.
 - Run `make lint`, `make test`, `make build`, and `make check` before pushing Swift, plist, project, framework-reference, CI-secret, or documentation changes.
 - See `SECURITY.md` for vulnerability reporting and safe research guidance.

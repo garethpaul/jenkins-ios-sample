@@ -7,33 +7,6 @@
 //
 
 import UIKit
-import Fabric
-import Crashlytics
-
-func isConfiguredFabricAPIKey(_ apiKey: String?) -> Bool {
-    guard let apiKey = apiKey else {
-        return false
-    }
-
-    let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-    if trimmedAPIKey.rangeOfCharacter(from: .whitespacesAndNewlines) != nil {
-        return false
-    }
-
-    let normalizedAPIKey = trimmedAPIKey.uppercased()
-    let placeholderFragments = ["FABRIC_API_KEY", "CRASHLYTICS_BUILD_SECRET"]
-
-    for placeholderFragment in placeholderFragments {
-        if normalizedAPIKey.range(of: placeholderFragment) != nil {
-            return false
-        }
-    }
-
-    return !trimmedAPIKey.isEmpty &&
-        trimmedAPIKey.range(of: "$(") == nil &&
-        normalizedAPIKey != "YOUR_FABRIC_API_KEY" &&
-        !normalizedAPIKey.hasPrefix("REPLACE_")
-}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -42,21 +15,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
-        if hasConfiguredFabricAPIKey() {
-            Fabric.with([Crashlytics.sharedInstance()])
-        }
-
         return true
-    }
-
-    func hasConfiguredFabricAPIKey() -> Bool {
-        if let fabric = Bundle.main.object(forInfoDictionaryKey: "Fabric") as? [String: Any],
-            let apiKey = fabric["APIKey"] as? String {
-                return isConfiguredFabricAPIKey(apiKey)
-        }
-
-        return false
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

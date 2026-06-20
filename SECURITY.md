@@ -1,5 +1,19 @@
 # Security Policy
 
+## Retired Fabric/Crashlytics integration
+
+The current tree contains no Fabric or Crashlytics runtime, upload executable,
+credential setting, signing identity, or provider workflow. The historical
+integration passed a Fabric API key and Crashlytics build secret as process
+arguments to an unsupported vendored binary. Those historical credentials must
+be revoked or deleted at the retired provider even if the repositories or apps
+are no longer active. Review provider audit logs for unexpected symbol uploads
+or account activity before resolving any secret-scanning alert.
+
+Do not restore the old frameworks or upload scripts. A replacement provider
+requires a separate dependency, privacy, network, credential, and retention
+review.
+
 ## Supported Versions
 
 The supported security scope for `jenkins-ios-sample` is the current default branch, `master`. Older commits, tags, branches, forks, demos, and generated artifacts are not actively supported unless the repository explicitly marks them as maintained.
@@ -37,8 +51,12 @@ Helpful reports include:
   whitespace-only CI secrets do not invoke the vendored Fabric script.
 - The build script should also reject embedded whitespace remaining in either
   credential after trimming so malformed tokens do not reach vendored code.
-- Runtime Fabric initialization should skip empty, whitespace-only, embedded whitespace, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
-- Testable Fabric API key validation should cover missing, blank, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, and trimmed real values before Fabric starts.
+- The build script must validate the legacy 40-hex API key and 64-hex build
+  secret shapes without printing credential values or passing them as
+  arguments to the validator.
+- Runtime Fabric initialization should skip empty, whitespace-only, embedded whitespace, Unicode control character, embedded placeholder, named placeholder fragment, or case-insensitive placeholder API key values so local builds do not start Crashlytics with unresolved configuration.
+- Runtime Fabric startup requires the original bundle value to be a whitespace-free, exact 40-hex API key so validation matches the value consumed by the SDK even when build-phase upload is skipped.
+- Testable Fabric API key validation should cover missing, blank, edge and embedded whitespace, Unicode control characters, embedded placeholder fragments, named placeholder fragments, case-insensitive placeholder values, exact lowercase and uppercase values, wrong lengths, and non-hex values before Fabric starts.
 - Signing identities, provisioning profiles, `.env` files, and local xcconfig files should stay out of git.
 - Run `make check` for the static baseline and `make test` for hosted/local
   XCTest after changing Swift sources, plists, Xcode project metadata,
