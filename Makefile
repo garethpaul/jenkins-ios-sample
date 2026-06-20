@@ -11,3 +11,4 @@ build: check
 
 check:
 	python3 "$(ROOT)/scripts/check-baseline.py"
+	cd "$(ROOT)" && python3 -m unittest discover -s tests -v

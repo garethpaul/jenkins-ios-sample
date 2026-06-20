@@ -1,5 +1,19 @@
 # Security Policy
 
+## Retired Fabric/Crashlytics integration
+
+The current tree contains no Fabric or Crashlytics runtime, upload executable,
+credential setting, signing identity, or provider workflow. The historical
+integration passed a Fabric API key and Crashlytics build secret as process
+arguments to an unsupported vendored binary. Those historical credentials must
+be revoked or deleted at the retired provider even if the repositories or apps
+are no longer active. Review provider audit logs for unexpected symbol uploads
+or account activity before resolving any secret-scanning alert.
+
+Do not restore the old frameworks or upload scripts. A replacement provider
+requires a separate dependency, privacy, network, credential, and retention
+review.
+
 ## Supported Versions
 
 The supported security scope for `jenkins-ios-sample` is the current default branch, `master`. Older commits, tags, branches, forks, demos, and generated artifacts are not actively supported unless the repository explicitly marks them as maintained.

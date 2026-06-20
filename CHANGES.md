@@ -1,5 +1,17 @@
 # Changes
 
+## 2026-06-19
+
+- Retired the unsupported Fabric and Crashlytics runtime and upload integration.
+- Removed vendored frameworks, executables, plist credentials, Xcode linkage,
+  upload shell phase, credential validators, and pinned signing identities.
+- Hardened the simulator test runner to strip legacy credentials, reject
+  symlinked project overrides, disable signing, and avoid archives/uploads.
+- Replaced credential-shape checks with repository-policy and hostile fake-tool
+  tests that verify the retired boundary cannot execute.
+- Kept the PR #3–#7 Makefile location-independence improvement while
+  superseding their legacy credential-validation approach.
+
 ## 2026-06-15
 
 - Rejected leading and trailing whitespace in runtime Fabric API keys so the

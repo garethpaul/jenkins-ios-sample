@@ -6,60 +6,12 @@
 //  Copyright (c) 2015 Gareth Jones. All rights reserved.
 //
 
-import UIKit
 import XCTest
 @testable import Jenkins_iOS_Sample
 
 final class Jenkins_iOS_SampleTests: XCTestCase {
 
-    func testFabricAPIKeyValidationRejectsMissingOrBlankValues() {
-        XCTAssertFalse(isConfiguredFabricAPIKey(nil))
-        XCTAssertFalse(isConfiguredFabricAPIKey(""))
-        XCTAssertFalse(isConfiguredFabricAPIKey(" \n\t "))
-    }
-
-    func testFabricAPIKeyValidationRejectsPlaceholders() {
-        XCTAssertFalse(isConfiguredFabricAPIKey("$(FABRIC_API_KEY)"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("prefix-$(FABRIC_API_KEY)"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_FABRIC_API_KEY"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("your_fabric_api_key"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_FABRIC_API_KEY_HERE"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("prefix-FABRIC_API_KEY"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("YOUR_CRASHLYTICS_BUILD_SECRET"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("REPLACE_WITH_FABRIC_API_KEY"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("replace_with_fabric_api_key"))
-    }
-
-    func testFabricAPIKeyValidationRejectsEmbeddedWhitespace() {
-        XCTAssertFalse(isConfiguredFabricAPIKey("abc 123"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("abc\t123"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("abc\n123"))
-    }
-
-    func testFabricAPIKeyValidationRejectsControlCharacters() {
-        XCTAssertFalse(isConfiguredFabricAPIKey("abc\u{0000}123"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("abc\u{202E}123"))
-    }
-
-    func testFabricAPIKeyValidationAcceptsExactHexValues() {
-        let lowercaseKey = String(repeating: "a", count: 40)
-        let uppercaseKey = String(repeating: "A", count: 40)
-
-        XCTAssertTrue(isConfiguredFabricAPIKey(lowercaseKey))
-        XCTAssertTrue(isConfiguredFabricAPIKey(uppercaseKey))
-    }
-
-    func testFabricAPIKeyValidationRejectsEdgeWhitespace() {
-        let validKey = String(repeating: "a", count: 40)
-
-        XCTAssertFalse(isConfiguredFabricAPIKey(" \(validKey)"))
-        XCTAssertFalse(isConfiguredFabricAPIKey("\(validKey) "))
-        XCTAssertFalse(isConfiguredFabricAPIKey("\n\(validKey)\t"))
-    }
-
-    func testFabricAPIKeyValidationRejectsWrongLengthsAndNonHexValues() {
-        XCTAssertFalse(isConfiguredFabricAPIKey(String(repeating: "a", count: 39)))
-        XCTAssertFalse(isConfiguredFabricAPIKey(String(repeating: "a", count: 41)))
-        XCTAssertFalse(isConfiguredFabricAPIKey(String(repeating: "a", count: 39) + "g"))
+    func testApplicationDelegateRemainsConstructible() {
+        XCTAssertNotNil(AppDelegate())
     }
 }
