@@ -19,7 +19,7 @@ review.
 
 ## Supported Versions
 
-The supported security scope for `jenkins-ios-sample` is the current default branch, `master`. Older commits, tags, branches, forks, demos, and generated artifacts are not actively supported unless the repository explicitly marks them as maintained.
+The supported security scope for `jenkins-ios-sample` is the current default branch, `master`. Older commits, tags, branches, forks, demos, and generated artifacts are not actively supported unless the repository explicitly marks them as maintained. As of June 19, 2026, GitHub reports this public repository as unarchived; that hosting state does not make this legacy sample production-supported software.
 
 Project summary: Jenkins iOS Sample
 
@@ -53,9 +53,12 @@ Helpful reports include:
   parseable plist/XML/JSON metadata, the shared XCTest scheme, Swift 5 project
   settings, the iOS 12 deployment target, and the absence of tracked
   `xcuserdata`.
-- `make test` runs the baseline first and then invokes simulator XCTest with the
-  retired provider environment variables unset and code signing disabled. It
-  does not archive, export, notarize, or upload an application.
+- `make test` runs the baseline first and, when `xcodebuild` is available,
+  invokes simulator XCTest with the retired provider environment variables
+  unset and code signing disabled. Without `xcodebuild`, the local target prints
+  a skip message and exits successfully; use the pinned hosted workflow for
+  authoritative XCTest evidence. The target does not archive, export, notarize,
+  or upload an application.
 - The pinned macOS workflow uses read-only repository permissions, disables
   persisted checkout credentials, references no repository secrets, and runs
   `make test`.
@@ -68,6 +71,10 @@ Helpful reports include:
   Their removal from the current tree reduces the active attack surface but
   does not establish provider-side credential rotation, revocation, deletion,
   or absence of past misuse.
+- Current checks cover repository policy, metadata contracts, and unsigned
+  simulator XCTest. They do not establish device-build compatibility,
+  production signing, archive/export readiness, App Store suitability, trust in
+  historical vendored binaries, or safety of unsupported historical revisions.
 - Reintroducing Fabric/Crashlytics or adding another reporting provider requires
   a separate dependency, privacy, network, credential, and retention review.
 - No primary dependency manifest was detected in the repository root. If dependencies are added later, include a manifest and prefer reproducible installation instructions.
