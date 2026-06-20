@@ -87,7 +87,9 @@ def inspect_repository(root):
         failures.append("test runner must not archive")
 
     makefile = text_files.get("Makefile", "")
-    if "$(abspath $(dir $(lastword $(MAKEFILE_LIST))))" not in makefile:
+    make_lines = [line.strip() for line in makefile.splitlines()]
+    if (make_lines.count("override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))") != 1 or
+            any(line.startswith("ROOT :=") for line in make_lines)):
         failures.append("Makefile must resolve repository root independently")
 
     return failures
