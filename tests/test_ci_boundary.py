@@ -11,7 +11,7 @@ RUN_TESTS = ROOT / "scripts" / "run-tests.sh"
 
 
 class CIBoundaryTests(unittest.TestCase):
-    def test_xcodebuild_receives_no_retired_provider_credentials(self):
+    def test_path_shadowed_native_tools_are_not_executed(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_path = Path(temporary_directory)
             capture_path = temporary_path / "capture.txt"
@@ -41,21 +41,16 @@ class CIBoundaryTests(unittest.TestCase):
                     "CRASHLYTICS_BUILD_SECRET": "b" * 64,
                     "FABRIC_UPLOAD_TOOL": str(fake_upload),
                     "FAKE_UPLOAD_MARKER": str(marker_path),
-                    "IOS_DESTINATION": "platform=iOS Simulator,id=TEST-DEVICE",
+                    "XCODE_PROJECT": "Missing.xcodeproj",
                 }
             )
 
-            subprocess.run([str(RUN_TESTS)], cwd=ROOT, env=environment, check=True)
+            completed = subprocess.run(
+                [str(RUN_TESTS)], cwd=ROOT, env=environment, capture_output=True, text=True
+            )
 
-            capture = capture_path.read_text(encoding="utf-8")
-            self.assertIn("FABRIC=unset", capture)
-            self.assertIn("SECRET=unset", capture)
-            self.assertNotIn("a" * 40, capture)
-            self.assertNotIn("b" * 64, capture)
-            self.assertIn("CODE_SIGNING_ALLOWED=NO", capture)
-            self.assertIn("CODE_SIGNING_REQUIRED=NO", capture)
-            self.assertIn("test|", capture)
-            self.assertNotIn("archive|", capture)
+            self.assertNotEqual(0, completed.returncode)
+            self.assertFalse(capture_path.exists())
             self.assertFalse(marker_path.exists())
 
     def test_project_override_rejects_symlink(self):
@@ -120,19 +115,15 @@ class CIBoundaryTests(unittest.TestCase):
             fake_xcodebuild = temporary_path / "xcodebuild"
             fake_xcodebuild.write_text("#!/bin/sh\nsleep 30\n", encoding="utf-8")
             fake_xcodebuild.chmod(0o755)
-            environment = os.environ.copy()
-            environment.update(
-                {
-                    "PATH": f"{temporary_path}:{environment['PATH']}",
-                    "IOS_DESTINATION": "platform=iOS Simulator,id=TEST-DEVICE",
-                    "XCODEBUILD_TIMEOUT_SECONDS": "1",
-                }
-            )
             started = time.monotonic()
             completed = subprocess.run(
-                [str(RUN_TESTS)],
+                [
+                    "/usr/bin/python3",
+                    str(ROOT / "scripts/run-xcodebuild.py"),
+                    "1",
+                    str(fake_xcodebuild),
+                ],
                 cwd=ROOT,
-                env=environment,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,

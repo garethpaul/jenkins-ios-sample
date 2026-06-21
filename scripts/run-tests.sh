@@ -2,12 +2,16 @@
 
 set -eu
 
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+ROOT=$(CDPATH='' cd -- "$(/usr/bin/dirname -- "$0")/.." && pwd)
 PROJECT=${XCODE_PROJECT:-Jenkins iOS Sample.xcodeproj}
 SCHEME=${XCODE_SCHEME:-Jenkins iOS Sample}
 CONFIGURATION=${CONFIGURATION:-Debug}
 XCODEBUILD_TIMEOUT_SECONDS=${XCODEBUILD_TIMEOUT_SECONDS:-600}
 SIMULATOR_ID=
+XCRUN=/usr/bin/xcrun
+XCODEBUILD=/usr/bin/xcodebuild
+PYTHON=/usr/bin/python3
+AWK=/usr/bin/awk
 
 case "$PROJECT" in
     /*|*..*|-) printf '%s\n' "XCODE_PROJECT must name a regular repository project directory." >&2; exit 2 ;;
@@ -17,6 +21,7 @@ PROJECT_PATH=$ROOT/$PROJECT
 old_ifs=$IFS
 IFS=/
 set -f
+# shellcheck disable=SC2086  # Split the validated relative project path on '/'.
 set -- $PROJECT
 set +f
 IFS=$old_ifs
@@ -41,7 +46,8 @@ unset FABRIC_API_KEY CRASHLYTICS_BUILD_SECRET FABRIC_UPLOAD_TOOL
 
 find_simulator_id() {
     requested_name=$1
-    xcrun simctl list devices available | awk -F '[()]' -v requested_name="$requested_name" '
+    # shellcheck disable=SC2016  # The awk program consumes requested_name via -v.
+    "$XCRUN" simctl list devices available | "$AWK" -F '[()]' -v requested_name="$requested_name" '
         /^[[:space:]]+iPhone/ {
             name=$1
             sub(/^[[:space:]]+/, "", name)
@@ -55,13 +61,13 @@ find_simulator_id() {
 }
 
 wait_for_simulator() {
-    python3 - "$1" <<'PY'
+    "$PYTHON" - "$1" <<'PY'
 import subprocess
 import sys
 
 try:
     completed = subprocess.run(
-        ["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"],
+        ["/usr/bin/xcrun", "simctl", "bootstatus", sys.argv[1], "-b"],
         timeout=180,
     )
 except subprocess.TimeoutExpired:
@@ -71,7 +77,7 @@ sys.exit(completed.returncode)
 PY
 }
 
-if ! command -v xcodebuild >/dev/null 2>&1; then
+if [ ! -x "$XCODEBUILD" ]; then
     printf '%s\n' "xcodebuild is required to run Jenkins iOS Sample tests." >&2
     exit 127
 fi
@@ -88,15 +94,15 @@ else
 fi
 
 if [ -n "$SIMULATOR_ID" ]; then
-    xcrun simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
+    "$XCRUN" simctl boot "$SIMULATOR_ID" >/dev/null 2>&1 || true
     if ! wait_for_simulator "$SIMULATOR_ID"; then
-        xcrun simctl shutdown "$SIMULATOR_ID" >/dev/null 2>&1 || true
-        xcrun simctl boot "$SIMULATOR_ID"
+        "$XCRUN" simctl shutdown "$SIMULATOR_ID" >/dev/null 2>&1 || true
+        "$XCRUN" simctl boot "$SIMULATOR_ID"
         wait_for_simulator "$SIMULATOR_ID"
     fi
 fi
 
-python3 "$ROOT/scripts/run-xcodebuild.py" "$XCODEBUILD_TIMEOUT_SECONDS" xcodebuild \
+"$PYTHON" "$ROOT/scripts/run-xcodebuild.py" "$XCODEBUILD_TIMEOUT_SECONDS" "$XCODEBUILD" \
     -project "$PROJECT_PATH" \
     -scheme "$SCHEME" \
     -configuration "$CONFIGURATION" \

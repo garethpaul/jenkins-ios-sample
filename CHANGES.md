@@ -5,6 +5,13 @@
 - Made absolute external Makefile invocations work when the checkout path
   contains spaces while preserving the protected repository-root override and
   rejecting attempts to replace GNU Make's automatic `MAKEFILE_LIST` value.
+- Moved hosted policy, Python, and XCTest bootstrap commands outside mutable
+  Make targets and documented the remaining workflow and required-context
+  trust boundary.
+- Required the exact two-step hosted workflow and absolute system native-tool
+  paths, rejecting environment, shell, step, command, and `PATH` shadowing.
+- Made Make aliases use `/usr/bin/python3` so fake interpreters on `PATH`
+  cannot claim repository policy or Python-test success.
 
 ## 2026-06-19
 

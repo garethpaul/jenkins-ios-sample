@@ -22,4 +22,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Validate baseline and XCTest
-        run: make test
+        run: |
+          /usr/bin/python3 scripts/check-baseline.py
+          /usr/bin/python3 -m unittest discover -s tests -v
+          /bin/sh ./scripts/run-tests.sh
