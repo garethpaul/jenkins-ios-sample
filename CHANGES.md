@@ -1,5 +1,11 @@
 # Changes
 
+## 2026-06-21
+
+- Made absolute external Makefile invocations work when the checkout path
+  contains spaces while preserving the protected repository-root override and
+  rejecting attempts to replace GNU Make's automatic `MAKEFILE_LIST` value.
+
 ## 2026-06-19
 
 - Retired the unsupported Fabric and Crashlytics runtime and upload integration.
