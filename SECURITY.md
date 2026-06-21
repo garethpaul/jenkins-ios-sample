@@ -61,7 +61,15 @@ Helpful reports include:
   or upload an application.
 - The pinned macOS workflow uses read-only repository permissions, disables
   persisted checkout credentials, references no repository secrets, and runs
-  `make test`.
+  repository policy, Python tests, and the native test runner directly rather
+  than delegating its bootstrap to mutable Make targets.
+- The workflow remains pull-request editable. Branch protection must require
+  the GitHub Actions `baseline` context, and workflow changes require review as
+  changes to verification authority; repository code cannot independently
+  guarantee those provider-side settings.
+- Local Make aliases do not establish trust in a modified Makefile. The hosted
+  direct-command order and review of changes to that workflow are the intended
+  verification boundary.
 - Hosted XCTest selects one simulator by UDID, waits for an explicit bounded
   boot with one recovery attempt, and disables parallel workers without
   skipping any validation cases.

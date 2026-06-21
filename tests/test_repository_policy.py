@@ -1,4 +1,5 @@
 import os
+import re
 import shlex
 import subprocess
 import tempfile
@@ -45,6 +46,18 @@ class RepositoryPolicyTests(unittest.TestCase):
         environment["PATH"] = "{}{}{}".format(root / "bin", os.pathsep, environment["PATH"])
         return environment
 
+    def hosted_validation_command(self, repository_root):
+        workflow = (repository_root / ".github/workflows/check.yml").read_text(encoding="utf-8")
+        match = re.search(
+            r"(?m)^      - name: Validate baseline and XCTest\n"
+            r"        run: (?:(?!\|)([^\n]+)|\|\n((?:          [^\n]*(?:\n|$))+))",
+            workflow,
+        )
+        self.assertIsNotNone(match, workflow)
+        if match.group(1):
+            return match.group(1)
+        return "\n".join(line[10:] for line in match.group(2).splitlines())
+
     def test_rejects_retired_provider_execution_surfaces(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -87,6 +100,15 @@ class RepositoryPolicyTests(unittest.TestCase):
                 ".github/workflows/check.yml",
                 "permissions:\n  contents: read\nsteps:\n  - run: xcodebuild archive\n  - uses: actions/checkout@deadbeef\n    with:\n      persist-credentials: false\n",
                 "must not sign, archive, or upload",
+            ),
+            "mutable Make hosted entrypoint": (
+                ".github/workflows/check.yml",
+                "permissions:\n  contents: read\nsteps:\n"
+                "  - uses: actions/checkout@deadbeef\n"
+                "    with:\n      persist-credentials: false\n"
+                "  - name: Validate baseline and XCTest\n"
+                "    run: make test\n",
+                "direct repository policy, Python tests, and native runner",
             ),
             "shell build phase": (
                 "Jenkins iOS Sample.xcodeproj/project.pbxproj",
@@ -193,6 +215,48 @@ class RepositoryPolicyTests(unittest.TestCase):
                     self.assertIn("repository root independently", hostile_result.stderr)
                     self.assertNotIn("fake baseline", hostile_result.stdout)
                     self.assertNotIn("fake run-tests", hostile_result.stdout)
+
+            hosted_checkout = temporary_root / "hosted-combined"
+            hosted_checkout.mkdir()
+            self.write_minimal_make_checkout(
+                hosted_checkout,
+                makefile
+                + "\ncheck:\n\t@echo FAKE_CHECK_OVERRIDE\n"
+                + "\ntest: override ROOT := $(CURDIR)/fake-root\n",
+            )
+            self.write_minimal_make_checkout(hosted_checkout / "fake-root", "", "fake")
+            self.write(
+                hosted_checkout,
+                "scripts/repository_policy.py",
+                (repository_root / "scripts/repository_policy.py").read_text(encoding="utf-8"),
+            )
+            self.write(
+                hosted_checkout,
+                "scripts/check-baseline.py",
+                "from pathlib import Path\n"
+                "from repository_policy import inspect_repository\n"
+                "import sys\n"
+                "print('real hosted policy authority')\n"
+                "failures = inspect_repository(Path(__file__).resolve().parents[1])\n"
+                "for failure in failures:\n"
+                "    print(failure, file=sys.stderr)\n"
+                "raise SystemExit(bool(failures))\n",
+            )
+
+            hosted_result = subprocess.run(
+                ["/bin/sh", "-e", "-c", self.hosted_validation_command(repository_root)],
+                cwd=hosted_checkout,
+                env=environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(0, hosted_result.returncode, hosted_result.stdout)
+            self.assertIn("real hosted policy authority", hosted_result.stdout)
+            self.assertIn("repository root independently", hosted_result.stderr)
+            self.assertNotIn("FAKE_CHECK_OVERRIDE", hosted_result.stdout)
+            self.assertNotIn("fake run-tests", hosted_result.stdout)
 
     def test_repository_policy_rejects_later_root_override(self):
         repository_root = Path(__file__).resolve().parents[1]

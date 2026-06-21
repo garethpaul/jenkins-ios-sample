@@ -5,6 +5,9 @@
 - Made absolute external Makefile invocations work when the checkout path
   contains spaces while preserving the protected repository-root override and
   rejecting attempts to replace GNU Make's automatic `MAKEFILE_LIST` value.
+- Moved hosted policy, Python, and XCTest bootstrap commands outside mutable
+  Make targets and documented the remaining workflow and required-context
+  trust boundary.
 
 ## 2026-06-19
 

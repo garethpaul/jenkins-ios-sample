@@ -31,12 +31,23 @@ make test
 `xcodebuild` and upload tools. `make test` additionally executes the native
 XCTest suite when Xcode is available. Both commands resolve paths from the
 Makefile location, including checkouts whose paths contain spaces, so this also
-works from another directory. `ROOT` and `MAKEFILE_LIST` overrides cannot
-redirect verification into another tree:
+works from another directory. Command-line and environment `ROOT` values and
+direct `MAKEFILE_LIST` replacement cannot redirect the normal aliases into
+another tree:
 
 ```sh
 make -f /path/to/jenkins-ios-sample/Makefile check
 ```
+
+Hosted validation does not trust Make targets as its bootstrap. The pinned
+workflow invokes `scripts/check-baseline.py`, the Python policy tests, and
+`scripts/run-tests.sh` directly and in that order, so a modified Make recipe or
+target-specific variable cannot run before repository policy. The workflow is
+itself pull-request editable; branch protection must require the expected
+GitHub Actions `baseline` context, and reviewers must treat workflow changes as
+changes to the verification authority. Local Make aliases remain convenience entrypoints;
+they cannot authenticate a Makefile that an untrusted change is allowed to
+rewrite.
 
 The native gate is unsigned and simulator-only. It does not create an archive,
 export an IPA, contact a retired provider, or validate a physical-device build.
