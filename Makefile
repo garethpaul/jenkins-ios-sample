@@ -1,4 +1,4 @@
-override ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$${path\# }; dirname -- "$$path")
 
 .PHONY: build check lint test
 

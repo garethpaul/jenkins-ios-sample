@@ -1,3 +1,4 @@
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -77,6 +78,29 @@ class RepositoryPolicyTests(unittest.TestCase):
                 self.write(root, path, content)
                 failures = inspect_repository(root)
                 self.assertTrue(any(expected in failure for failure in failures), failures)
+
+    def test_makefile_resolves_spaced_checkout_from_external_directory(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+            external = temporary_root / "external caller"
+            checkout.mkdir()
+            external.mkdir()
+            (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+
+            result = subprocess.run(
+                ["make", "--dry-run", "-f", str(checkout / "Makefile"), "check"],
+                cwd=external,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn(str(checkout / "scripts/check-baseline.py"), result.stdout)
+            self.assertIn('cd "{}"'.format(checkout), result.stdout)
 
 
 if __name__ == "__main__":
