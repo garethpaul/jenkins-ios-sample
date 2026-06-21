@@ -31,7 +31,8 @@ make test
 `xcodebuild` and upload tools. `make test` additionally executes the native
 XCTest suite when Xcode is available. Both commands resolve paths from the
 Makefile location, including checkouts whose paths contain spaces, so this also
-works from another directory:
+works from another directory. `ROOT` and `MAKEFILE_LIST` overrides cannot
+redirect verification into another tree:
 
 ```sh
 make -f /path/to/jenkins-ios-sample/Makefile check

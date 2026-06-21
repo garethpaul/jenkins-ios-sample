@@ -1,3 +1,6 @@
+ifneq ($(origin MAKEFILE_LIST),file)
+$(error MAKEFILE_LIST must not be overridden)
+endif
 override ROOT := $(shell path='$(subst ','"'"',$(MAKEFILE_LIST))'; path=$${path\# }; dirname -- "$$path")
 
 .PHONY: build check lint test

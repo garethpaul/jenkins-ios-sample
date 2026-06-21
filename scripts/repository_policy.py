@@ -88,6 +88,13 @@ def inspect_repository(root):
 
     makefile = text_files.get("Makefile", "")
     make_lines = [line.strip() for line in makefile.splitlines()]
+    makefile_list_guard = (
+        "ifneq ($(origin MAKEFILE_LIST),file)\n"
+        "$(error MAKEFILE_LIST must not be overridden)\n"
+        "endif\n"
+    )
+    if makefile.count(makefile_list_guard) != 1:
+        failures.append("Makefile must reject MAKEFILE_LIST overrides")
     if (make_lines.count("override ROOT := $(shell path='$(subst ','\"'\"',$(MAKEFILE_LIST))'; "
                          "path=$${path\\# }; dirname -- \"$$path\")") != 1 or
             any(line.startswith("ROOT :=") for line in make_lines)):

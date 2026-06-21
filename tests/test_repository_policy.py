@@ -1,3 +1,4 @@
+import os
 import subprocess
 import tempfile
 import unittest
@@ -91,16 +92,80 @@ class RepositoryPolicyTests(unittest.TestCase):
             external.mkdir()
             (checkout / "Makefile").write_text(makefile, encoding="utf-8")
 
-            result = subprocess.run(
-                ["make", "--dry-run", "-f", str(checkout / "Makefile"), "check"],
-                cwd=external,
-                check=True,
-                capture_output=True,
-                text=True,
+            for target in ("check", "lint", "test", "build"):
+                for extra_arguments in ((), ("ROOT=/tmp/untrusted",), ("-e", "ROOT=/tmp/untrusted")):
+                    with self.subTest(target=target, extra_arguments=extra_arguments):
+                        result = subprocess.run(
+                            ["make", "--dry-run", "-f", str(checkout / "Makefile"),
+                             *extra_arguments, target],
+                            cwd=external,
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                        )
+
+                        self.assertIn(str(checkout / "scripts/check-baseline.py"), result.stdout)
+                        self.assertIn('cd "{}"'.format(checkout), result.stdout)
+
+    def test_makefile_rejects_makefile_list_injection(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+            external = temporary_root / "external caller"
+            checkout.mkdir()
+            external.mkdir()
+            (checkout / "Makefile").write_text(makefile, encoding="utf-8")
+
+            environment = os.environ.copy()
+            environment["MAKEFILE_LIST"] = "/tmp/untrusted"
+            attacks = (
+                (["make", "--dry-run", "-f", str(checkout / "Makefile"),
+                  "MAKEFILE_LIST=/tmp/untrusted", "check"], None),
+                (["make", "-e", "--dry-run", "-f", str(checkout / "Makefile"), "check"],
+                 environment),
             )
 
-            self.assertIn(str(checkout / "scripts/check-baseline.py"), result.stdout)
-            self.assertIn('cd "{}"'.format(checkout), result.stdout)
+            for command, attack_environment in attacks:
+                with self.subTest(command=command):
+                    result = subprocess.run(
+                        command,
+                        cwd=external,
+                        env=attack_environment,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    self.assertNotEqual(0, result.returncode, result.stdout)
+                    self.assertIn("MAKEFILE_LIST must not be overridden", result.stderr)
+
+    def test_repository_policy_requires_makefile_list_origin_guard(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self.write(
+                root,
+                "Makefile",
+                makefile.replace(
+                    "ifneq ($(origin MAKEFILE_LIST),file)\n"
+                    "$(error MAKEFILE_LIST must not be overridden)\n"
+                    "endif\n",
+                    "",
+                    1,
+                ),
+            )
+
+            failures = inspect_repository(root)
+
+            self.assertTrue(
+                any("reject MAKEFILE_LIST overrides" in failure for failure in failures),
+                failures,
+            )
 
 
 if __name__ == "__main__":
