@@ -52,7 +52,8 @@ Helpful reports include:
 - `make check` validates that policy together with required project files,
   parseable plist/XML/JSON metadata, the shared XCTest scheme, Swift 5 project
   settings, the iOS 12 deployment target, and the absence of tracked
-  `xcuserdata`.
+  `xcuserdata`. Make aliases invoke `/usr/bin/python3` explicitly so a fake
+  `python3` earlier on `PATH` cannot claim policy or Python-test success.
 - `make test` runs the baseline first and, when `xcodebuild` is available,
   invokes simulator XCTest with the retired provider environment variables
   unset and code signing disabled. Without `xcodebuild`, the local target prints

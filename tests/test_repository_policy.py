@@ -201,6 +201,51 @@ class RepositoryPolicyTests(unittest.TestCase):
                         self.assertIn("cd {}".format(shlex.quote(str(checkout))), result.stdout)
                         self.assertNotIn("/tmp/untrusted", result.stdout)
 
+    def test_make_aliases_do_not_trust_python_from_path(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            checkout = temporary_root / "checkout"
+            checkout.mkdir()
+            self.write_minimal_make_checkout(checkout, makefile)
+            fake_log = temporary_root / "fake-python-ran"
+            self.write_executable(
+                temporary_root,
+                "bin/python3",
+                "#!/bin/sh\n"
+                "printf '%s\\n' \"$*\" >> {}\n"
+                "if [ \"${{1:-}}\" = \"-c\" ]; then\n"
+                "  printf '.\\n'\n"
+                "fi\n"
+                "exit 0\n".format(shlex.quote(str(fake_log))),
+            )
+            environment = os.environ.copy()
+            environment["PATH"] = "{}{}{}".format(
+                temporary_root / "bin",
+                os.pathsep,
+                environment["PATH"],
+            )
+
+            for target in ("check", "lint", "build", "test"):
+                with self.subTest(target=target):
+                    if fake_log.exists():
+                        fake_log.unlink()
+
+                    result = subprocess.run(
+                        ["make", target],
+                        cwd=checkout,
+                        env=environment,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                    self.assertIn("real baseline", result.stdout)
+                    self.assertFalse(fake_log.exists(), result.stdout + result.stderr)
+
     def test_make_test_reaches_real_policy_before_later_root_overrides(self):
         repository_root = Path(__file__).resolve().parents[1]
         makefile = (repository_root / "Makefile").read_text(encoding="utf-8")

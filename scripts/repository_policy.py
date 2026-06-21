@@ -126,16 +126,16 @@ def inspect_repository(root):
     make_lines = [line.strip() for line in makefile.splitlines()]
     expected_root_line = (
         "override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','\"'\"',$(MAKEFILE_LIST))' "
-        "python3 -c \"import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; "
+        "/usr/bin/python3 -c \"import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; "
         "marker = ' /'; path = '/' + path.rsplit(marker, 1)[1] if marker in path else path; "
         "print(shlex.quote(os.path.dirname(path) or '.'))\")"
     )
     expected_check_bootstrap_line = (
-        "$(eval check: ; python3 $(ROOT)/scripts/check-baseline.py && cd $(ROOT) && "
-        "python3 -m unittest discover -s tests -v)"
+        "$(eval check: ; /usr/bin/python3 $(ROOT)/scripts/check-baseline.py && cd $(ROOT) && "
+        "/usr/bin/python3 -m unittest discover -s tests -v)"
     )
     expected_command_lines = {
-        ("@if command -v xcodebuild >/dev/null 2>&1; then cd $(ROOT) && ./scripts/run-tests.sh; "
+        ("@if [ -x /usr/bin/xcodebuild ]; then cd $(ROOT) && ./scripts/run-tests.sh; "
          "else printf '%s\\n' \"Skipping XCTest: xcodebuild is not installed.\"; fi"),
     }
     root_assignments = [

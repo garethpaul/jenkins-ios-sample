@@ -10,6 +10,8 @@
   trust boundary.
 - Required the exact two-step hosted workflow and absolute system native-tool
   paths, rejecting environment, shell, step, command, and `PATH` shadowing.
+- Made Make aliases use `/usr/bin/python3` so fake interpreters on `PATH`
+  cannot claim repository policy or Python-test success.
 
 ## 2026-06-19
 

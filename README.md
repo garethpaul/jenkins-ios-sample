@@ -28,12 +28,13 @@ make test
 ```
 
 `make check` validates repository policy and runs hostile tests with fake
-`xcodebuild` and upload tools. `make test` additionally executes the native
-XCTest suite when Xcode is available. Both commands resolve paths from the
-Makefile location, including checkouts whose paths contain spaces, so this also
-works from another directory. Command-line and environment `ROOT` values and
-direct `MAKEFILE_LIST` replacement cannot redirect the normal aliases into
-another tree:
+`xcodebuild`, Python, and upload tools. `make test` additionally executes the
+native XCTest suite when `/usr/bin/xcodebuild` is available. Both commands
+resolve paths from the Makefile location with `/usr/bin/python3`, including
+checkouts whose paths contain spaces, so this also works from another directory.
+Command-line and environment `ROOT` values, fake `python3` entries on `PATH`,
+and direct `MAKEFILE_LIST` replacement cannot redirect the normal aliases into
+another tree or claim policy success:
 
 ```sh
 make -f /path/to/jenkins-ios-sample/Makefile check
