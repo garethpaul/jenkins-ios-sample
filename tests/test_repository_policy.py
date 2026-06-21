@@ -140,34 +140,59 @@ class RepositoryPolicyTests(unittest.TestCase):
                         self.assertIn("cd {}".format(shlex.quote(str(checkout))), result.stdout)
                         self.assertNotIn("/tmp/untrusted", result.stdout)
 
-    def test_make_test_ignores_later_committed_root_override(self):
+    def test_make_test_reaches_real_policy_before_later_root_overrides(self):
         repository_root = Path(__file__).resolve().parents[1]
-        makefile = (
-            (repository_root / "Makefile").read_text(encoding="utf-8")
-            + "\noverride ROOT := $(CURDIR)/fake-root\n"
-        )
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             temporary_root = Path(temporary_directory)
-            checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
-            checkout.mkdir()
-            self.write_minimal_make_checkout(checkout, makefile)
-            self.write_minimal_make_checkout(checkout / "fake-root", "", "fake")
             environment = self.write_fake_xcodebuild(temporary_root)
 
-            result = subprocess.run(
-                ["make", "test"],
-                cwd=checkout,
-                env=environment,
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            for label, override_line in (
+                ("global", "override ROOT := $(CURDIR)/fake-root"),
+                ("all-targets", "check lint test build: override ROOT := $(CURDIR)/fake-root"),
+                ("check-target", "check: override ROOT := $(CURDIR)/fake-root"),
+            ):
+                with self.subTest(override_line=override_line):
+                    hostile_checkout = temporary_root / label
+                    hostile_checkout.mkdir()
+                    self.write_minimal_make_checkout(
+                        hostile_checkout,
+                        "{}\n{}\n".format(makefile, override_line),
+                    )
+                    self.write_minimal_make_checkout(hostile_checkout / "fake-root", "", "fake")
+                    self.write(
+                        hostile_checkout,
+                        "scripts/repository_policy.py",
+                        (repository_root / "scripts/repository_policy.py").read_text(encoding="utf-8"),
+                    )
+                    self.write(
+                        hostile_checkout,
+                        "scripts/check-baseline.py",
+                        "from pathlib import Path\n"
+                        "from repository_policy import inspect_repository\n"
+                        "import sys\n"
+                        "print('real policy authority')\n"
+                        "failures = inspect_repository(Path(__file__).resolve().parents[1])\n"
+                        "for failure in failures:\n"
+                        "    print(failure, file=sys.stderr)\n"
+                        "raise SystemExit(bool(failures))\n",
+                    )
 
-            self.assertIn("real baseline", result.stdout)
-            self.assertIn("real run-tests", result.stdout)
-            self.assertNotIn("fake baseline", result.stdout)
-            self.assertNotIn("fake run-tests", result.stdout)
+                    hostile_result = subprocess.run(
+                        ["make", "test"],
+                        cwd=hostile_checkout,
+                        env=environment,
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    self.assertNotEqual(0, hostile_result.returncode, hostile_result.stdout)
+                    self.assertIn("real policy authority", hostile_result.stdout)
+                    self.assertIn("repository root independently", hostile_result.stderr)
+                    self.assertNotIn("fake baseline", hostile_result.stdout)
+                    self.assertNotIn("fake run-tests", hostile_result.stdout)
 
     def test_repository_policy_rejects_later_root_override(self):
         repository_root = Path(__file__).resolve().parents[1]

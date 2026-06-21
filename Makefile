@@ -2,7 +2,7 @@ ifneq ($(origin MAKEFILE_LIST),file)
 $(error MAKEFILE_LIST must not be overridden)
 endif
 override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','"'"',$(MAKEFILE_LIST))' python3 -c "import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; marker = ' /'; path = '/' + path.rsplit(marker, 1)[1] if marker in path else path; print(shlex.quote(os.path.dirname(path) or '.'))")
-check lint test build: override ROOT := $(ROOT)
+$(eval check: ; python3 $(ROOT)/scripts/check-baseline.py && cd $(ROOT) && python3 -m unittest discover -s tests -v)
 
 .PHONY: build check lint test
 
@@ -14,5 +14,3 @@ test: check
 build: check
 
 check:
-	python3 $(ROOT)/scripts/check-baseline.py
-	cd $(ROOT) && python3 -m unittest discover -s tests -v
