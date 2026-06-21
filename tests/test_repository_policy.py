@@ -1,4 +1,5 @@
 import os
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -12,6 +13,37 @@ class RepositoryPolicyTests(unittest.TestCase):
         target = root / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
+
+    def write_executable(self, root, path, content):
+        self.write(root, path, content)
+        (root / path).chmod(0o755)
+
+    def write_minimal_make_checkout(self, root, makefile, baseline_label="real"):
+        self.write(root, "Makefile", makefile)
+        self.write(
+            root,
+            "scripts/check-baseline.py",
+            'print("{} baseline")\n'.format(baseline_label),
+        )
+        self.write_executable(
+            root,
+            "scripts/run-tests.sh",
+            '#!/bin/sh\necho "{} run-tests"\n'.format(baseline_label),
+        )
+        self.write(
+            root,
+            "tests/test_{}.py".format(baseline_label),
+            "import unittest\n\n"
+            "class Smoke(unittest.TestCase):\n"
+            "    def test_{}(self):\n"
+            "        self.assertTrue(True)\n".format(baseline_label),
+        )
+
+    def write_fake_xcodebuild(self, root):
+        self.write_executable(root, "bin/xcodebuild", "#!/bin/sh\nexit 0\n")
+        environment = os.environ.copy()
+        environment["PATH"] = "{}{}{}".format(root / "bin", os.pathsep, environment["PATH"])
+        return environment
 
     def test_rejects_retired_provider_execution_surfaces(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -104,8 +136,104 @@ class RepositoryPolicyTests(unittest.TestCase):
                             text=True,
                         )
 
-                        self.assertIn(str(checkout / "scripts/check-baseline.py"), result.stdout)
-                        self.assertIn('cd "{}"'.format(checkout), result.stdout)
+                        self.assertIn("scripts/check-baseline.py", result.stdout)
+                        self.assertIn("cd {}".format(shlex.quote(str(checkout))), result.stdout)
+                        self.assertNotIn("/tmp/untrusted", result.stdout)
+
+    def test_make_test_ignores_later_committed_root_override(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (
+            (repository_root / "Makefile").read_text(encoding="utf-8")
+            + "\noverride ROOT := $(CURDIR)/fake-root\n"
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            checkout = temporary_root / "checkout with spaces 'quoted' [hostile]"
+            checkout.mkdir()
+            self.write_minimal_make_checkout(checkout, makefile)
+            self.write_minimal_make_checkout(checkout / "fake-root", "", "fake")
+            environment = self.write_fake_xcodebuild(temporary_root)
+
+            result = subprocess.run(
+                ["make", "test"],
+                cwd=checkout,
+                env=environment,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("real baseline", result.stdout)
+            self.assertIn("real run-tests", result.stdout)
+            self.assertNotIn("fake baseline", result.stdout)
+            self.assertNotIn("fake run-tests", result.stdout)
+
+    def test_repository_policy_rejects_later_root_override(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        for override_line in (
+            "override ROOT := /tmp/untrusted",
+            "check: override ROOT := /tmp/untrusted",
+        ):
+            with self.subTest(override_line=override_line), tempfile.TemporaryDirectory() as temporary_directory:
+                root = Path(temporary_directory)
+                self.write(root, "Makefile", "{}\n{}\n".format(makefile, override_line))
+
+                failures = inspect_repository(root)
+
+                self.assertTrue(
+                    any("repository root independently" in failure for failure in failures),
+                    failures,
+                )
+
+    def test_makefile_executes_from_double_quote_checkout_path(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            checkout = temporary_root / "checkout with spaces 'quoted' [hostile] \"double"
+            external = temporary_root / "external caller"
+            checkout.mkdir()
+            external.mkdir()
+            self.write_minimal_make_checkout(checkout, makefile)
+
+            result = subprocess.run(
+                ["make", "-f", str(checkout / "Makefile"), "check"],
+                cwd=external,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn("real baseline", result.stdout)
+
+    def test_makefile_uses_current_file_when_earlier_makefile_is_loaded(self):
+        repository_root = Path(__file__).resolve().parents[1]
+        makefile = (repository_root / "Makefile").read_text(encoding="utf-8")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            checkout = temporary_root / "checkout with spaces [hostile]"
+            external = temporary_root / "external caller"
+            early = temporary_root / "early.mk"
+            checkout.mkdir()
+            external.mkdir()
+            early.write_text("# earlier makefile\n", encoding="utf-8")
+            self.write_minimal_make_checkout(checkout, makefile)
+
+            result = subprocess.run(
+                ["make", "--dry-run", "-f", str(early), "-f", str(checkout / "Makefile"), "check"],
+                cwd=external,
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertIn(shlex.quote(str(checkout)), result.stdout)
+            self.assertNotIn(str(early), result.stdout)
 
     def test_makefile_rejects_makefile_list_injection(self):
         repository_root = Path(__file__).resolve().parents[1]

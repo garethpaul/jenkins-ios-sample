@@ -88,6 +88,23 @@ def inspect_repository(root):
 
     makefile = text_files.get("Makefile", "")
     make_lines = [line.strip() for line in makefile.splitlines()]
+    expected_root_line = (
+        "override ROOT := $(shell MAKEFILE_LIST_RAW='$(subst ','\"'\"',$(MAKEFILE_LIST))' "
+        "python3 -c \"import os, shlex; path = os.environ['MAKEFILE_LIST_RAW']; "
+        "marker = ' /'; path = '/' + path.rsplit(marker, 1)[1] if marker in path else path; "
+        "print(shlex.quote(os.path.dirname(path) or '.'))\")"
+    )
+    expected_target_root_line = "check lint test build: override ROOT := $(ROOT)"
+    expected_command_lines = {
+        ("@if command -v xcodebuild >/dev/null 2>&1; then cd $(ROOT) && ./scripts/run-tests.sh; "
+         "else printf '%s\\n' \"Skipping XCTest: xcodebuild is not installed.\"; fi"),
+        "python3 $(ROOT)/scripts/check-baseline.py",
+        "cd $(ROOT) && python3 -m unittest discover -s tests -v",
+    }
+    root_assignments = [
+        line for line in make_lines
+        if re.match(r"^(?:[^:=]+:\s*)?(?:override\s+|export\s+|private\s+)*ROOT\s*(?::=|=|\?=|\+=|!=)", line)
+    ]
     makefile_list_guard = (
         "ifneq ($(origin MAKEFILE_LIST),file)\n"
         "$(error MAKEFILE_LIST must not be overridden)\n"
@@ -95,9 +112,10 @@ def inspect_repository(root):
     )
     if makefile.count(makefile_list_guard) != 1:
         failures.append("Makefile must reject MAKEFILE_LIST overrides")
-    if (make_lines.count("override ROOT := $(shell path='$(subst ','\"'\"',$(MAKEFILE_LIST))'; "
-                         "path=$${path\\# }; dirname -- \"$$path\")") != 1 or
-            any(line.startswith("ROOT :=") for line in make_lines)):
+    if (make_lines.count(expected_root_line) != 1 or
+            make_lines.count(expected_target_root_line) != 1 or
+            sorted(root_assignments) != sorted((expected_root_line, expected_target_root_line)) or
+            not expected_command_lines.issubset(set(make_lines))):
         failures.append("Makefile must resolve repository root independently")
 
     return failures
