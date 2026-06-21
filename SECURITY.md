@@ -63,6 +63,10 @@ Helpful reports include:
   persisted checkout credentials, references no repository secrets, and runs
   repository policy, Python tests, and the native test runner directly rather
   than delegating its bootstrap to mutable Make targets.
+- The workflow contract permits only the pinned checkout and exact validation
+  step, with no job/step environment, custom shell, extra steps, or command
+  additions. The native runner uses absolute system paths for Apple and parsing
+  tools so checked-in or `PATH`-injected replacements cannot claim XCTest success.
 - The workflow remains pull-request editable. Branch protection must require
   the GitHub Actions `baseline` context, and workflow changes require review as
   changes to verification authority; repository code cannot independently
@@ -70,6 +74,9 @@ Helpful reports include:
 - Local Make aliases do not establish trust in a modified Makefile. The hosted
   direct-command order and review of changes to that workflow are the intended
   verification boundary.
+- A coordinated change to both the workflow and its repository policy remains
+  reviewable code, not a self-authenticating boundary; provider branch
+  protection and review of the required `baseline` context remain necessary.
 - Hosted XCTest selects one simulator by UDID, waits for an explicit bounded
   boot with one recovery attempt, and disables parallel workers without
   skipping any validation cases.

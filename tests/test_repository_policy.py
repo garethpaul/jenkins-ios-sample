@@ -90,6 +90,7 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertTrue(any("workflow secret reference" in failure for failure in failures))
 
     def test_rejects_each_ci_boundary_mutation(self):
+        repository_root = Path(__file__).resolve().parents[1]
         mutations = {
             "persisted checkout credentials": (
                 ".github/workflows/check.yml",
@@ -108,7 +109,45 @@ class RepositoryPolicyTests(unittest.TestCase):
                 "    with:\n      persist-credentials: false\n"
                 "  - name: Validate baseline and XCTest\n"
                 "    run: make test\n",
-                "direct repository policy, Python tests, and native runner",
+                "exact reviewed workflow",
+            ),
+            "job PATH environment": (
+                ".github/workflows/check.yml",
+                (repository_root / ".github/workflows/check.yml").read_text(encoding="utf-8").replace(
+                    "    runs-on: macos-15\n",
+                    "    runs-on: macos-15\n    env:\n      PATH: .:${{ env.PATH }}\n",
+                ),
+                "exact reviewed workflow",
+            ),
+            "step environment": (
+                ".github/workflows/check.yml",
+                (repository_root / ".github/workflows/check.yml").read_text(encoding="utf-8").replace(
+                    "      - name: Validate baseline and XCTest\n",
+                    "      - name: Validate baseline and XCTest\n        env:\n          PATH: .:${{ env.PATH }}\n",
+                ),
+                "exact reviewed workflow",
+            ),
+            "custom validation shell": (
+                ".github/workflows/check.yml",
+                (repository_root / ".github/workflows/check.yml").read_text(encoding="utf-8").replace(
+                    "        run: |\n",
+                    "        shell: python\n        run: |\n",
+                ),
+                "exact reviewed workflow",
+            ),
+            "extra workflow step": (
+                ".github/workflows/check.yml",
+                (repository_root / ".github/workflows/check.yml").read_text(encoding="utf-8")
+                + "      - run: echo extra\n",
+                "exact reviewed workflow",
+            ),
+            "validation command addition": (
+                ".github/workflows/check.yml",
+                (repository_root / ".github/workflows/check.yml").read_text(encoding="utf-8").replace(
+                    "          /bin/sh ./scripts/run-tests.sh\n",
+                    "          echo injected\n          /bin/sh ./scripts/run-tests.sh\n",
+                ),
+                "exact reviewed workflow",
             ),
             "shell build phase": (
                 "Jenkins iOS Sample.xcodeproj/project.pbxproj",
@@ -257,6 +296,71 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertIn("repository root independently", hosted_result.stderr)
             self.assertNotIn("FAKE_CHECK_OVERRIDE", hosted_result.stdout)
             self.assertNotIn("fake run-tests", hosted_result.stdout)
+
+            shadow_checkout = temporary_root / "hosted-path-shadow"
+            shadow_checkout.mkdir()
+            self.write_minimal_make_checkout(shadow_checkout, makefile)
+            self.write(
+                shadow_checkout,
+                "scripts/repository_policy.py",
+                (repository_root / "scripts/repository_policy.py").read_text(encoding="utf-8"),
+            )
+            self.write(
+                shadow_checkout,
+                "scripts/check-baseline.py",
+                "from pathlib import Path\n"
+                "from repository_policy import inspect_repository\n"
+                "import sys\n"
+                "print('real hosted policy authority')\n"
+                "failures = inspect_repository(Path(__file__).resolve().parents[1])\n"
+                "for failure in failures:\n"
+                "    print(failure, file=sys.stderr)\n"
+                "raise SystemExit(bool(failures))\n",
+            )
+            self.write_executable(
+                shadow_checkout,
+                "scripts/run-tests.sh",
+                (repository_root / "scripts/run-tests.sh").read_text(encoding="utf-8"),
+            )
+            self.write(
+                shadow_checkout,
+                "scripts/run-xcodebuild.py",
+                (repository_root / "scripts/run-xcodebuild.py").read_text(encoding="utf-8"),
+            )
+            malicious_workflow = (repository_root / ".github/workflows/check.yml").read_text(
+                encoding="utf-8"
+            ).replace(
+                "    runs-on: macos-15\n",
+                "    runs-on: macos-15\n    env:\n      PATH: .:${{ env.PATH }}\n",
+            )
+            self.write(shadow_checkout, ".github/workflows/check.yml", malicious_workflow)
+            (shadow_checkout / "Jenkins iOS Sample.xcodeproj").mkdir()
+            fake_tool_log = shadow_checkout / "fake-native-tool-ran"
+            for tool in ("xcrun", "xcodebuild"):
+                self.write_executable(
+                    shadow_checkout,
+                    tool,
+                    "#!/bin/sh\n"
+                    "printf '%s\\n' {} >> {}\n"
+                    "exit 0\n".format(tool, shlex.quote(str(fake_tool_log))),
+                )
+            shadow_environment = environment.copy()
+            shadow_environment["PATH"] = ".{}{}".format(os.pathsep, shadow_environment["PATH"])
+            shadow_environment["IOS_DESTINATION"] = "platform=iOS Simulator,id=TEST-DEVICE"
+
+            shadow_result = subprocess.run(
+                ["/bin/sh", "-e", "-c", self.hosted_validation_command(repository_root)],
+                cwd=shadow_checkout,
+                env=shadow_environment,
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(0, shadow_result.returncode, shadow_result.stdout)
+            self.assertIn("real hosted policy authority", shadow_result.stdout)
+            self.assertIn("exact reviewed workflow", shadow_result.stderr)
+            self.assertFalse(fake_tool_log.exists())
 
     def test_repository_policy_rejects_later_root_override(self):
         repository_root = Path(__file__).resolve().parents[1]

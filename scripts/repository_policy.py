@@ -8,6 +8,35 @@ import re
 
 MAX_TEXT_BYTES = 1_048_576
 RETIRED_ARTIFACT_PARTS = {"Fabric.framework", "Crashlytics.framework"}
+EXPECTED_WORKFLOW = """name: Check
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  baseline:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Validate baseline and XCTest
+        run: |
+          /usr/bin/python3 scripts/check-baseline.py
+          /usr/bin/python3 -m unittest discover -s tests -v
+          /bin/sh ./scripts/run-tests.sh
+"""
 
 
 def _read_text(path):
@@ -64,13 +93,8 @@ def inspect_repository(root):
 
     workflow = text_files.get(".github/workflows/check.yml", "")
     if workflow:
-        expected_hosted_validation = (
-            "      - name: Validate baseline and XCTest\n"
-            "        run: |\n"
-            "          python3 scripts/check-baseline.py\n"
-            "          python3 -m unittest discover -s tests -v\n"
-            "          ./scripts/run-tests.sh\n"
-        )
+        if workflow != EXPECTED_WORKFLOW:
+            failures.append("workflow must preserve exact reviewed workflow job, checkout, and validation step")
         if not re.search(r"(?m)^permissions:\n\s+contents:\s+read\s*$", workflow) or "write-all" in workflow:
             failures.append("workflow must use read-only workflow permissions")
         if re.search(r"\$\{\{\s*secrets\.", workflow):
@@ -79,8 +103,6 @@ def inspect_repository(root):
             failures.append("workflow checkout must disable persisted credentials")
         if re.search(r"(?i)\b(archive|exportarchive|codesign|notary|upload)\b", workflow):
             failures.append("workflow must not sign, archive, or upload artifacts")
-        if workflow.count(expected_hosted_validation) != 1 or re.search(r"(?m)^\s*run:\s*make\s+test\s*$", workflow):
-            failures.append("workflow must run direct repository policy, Python tests, and native runner in order")
 
     runner = text_files.get("scripts/run-tests.sh", "")
     for required in (
@@ -89,6 +111,11 @@ def inspect_repository(root):
         "CODE_SIGNING_REQUIRED=NO",
         "CODE_SIGN_IDENTITY=",
         "run-xcodebuild.py",
+        "/usr/bin/xcrun",
+        "/usr/bin/xcodebuild",
+        "/usr/bin/python3",
+        "/usr/bin/awk",
+        "/usr/bin/dirname",
     ):
         if required not in runner:
             failures.append("test runner is missing safe boundary: {}".format(required))

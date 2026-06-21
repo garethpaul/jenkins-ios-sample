@@ -8,6 +8,8 @@
 - Moved hosted policy, Python, and XCTest bootstrap commands outside mutable
   Make targets and documented the remaining workflow and required-context
   trust boundary.
+- Required the exact two-step hosted workflow and absolute system native-tool
+  paths, rejecting environment, shell, step, command, and `PATH` shadowing.
 
 ## 2026-06-19
 

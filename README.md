@@ -45,9 +45,15 @@ workflow invokes `scripts/check-baseline.py`, the Python policy tests, and
 target-specific variable cannot run before repository policy. The workflow is
 itself pull-request editable; branch protection must require the expected
 GitHub Actions `baseline` context, and reviewers must treat workflow changes as
-changes to the verification authority. Local Make aliases remain convenience entrypoints;
-they cannot authenticate a Makefile that an untrusted change is allowed to
-rewrite.
+changes to the verification authority. Local Make aliases remain convenience
+entrypoints; they cannot authenticate a Makefile that an untrusted change is
+allowed to rewrite.
+
+The reviewed workflow shape is exact: one pinned credential-free checkout and
+one validation step, with no job or step environment, custom shell, extra step,
+or command addition. The native runner resolves `xcrun`, `xcodebuild`, Python,
+`awk`, and `dirname` through absolute system paths so repository or `PATH`
+shadowing cannot stand in for XCTest.
 
 The native gate is unsigned and simulator-only. It does not create an archive,
 export an IPA, contact a retired provider, or validate a physical-device build.
