@@ -76,6 +76,21 @@ def main():
     require("Jenkins iOS SampleTests.xctest" in (ROOT / "Jenkins iOS Sample.xcodeproj/xcshareddata/xcschemes/Jenkins iOS Sample.xcscheme").read_text(),
             "shared scheme must execute XCTest", failures)
 
+    timeout_runner = (ROOT / "scripts/run-xcodebuild.py").read_text(encoding="utf-8")
+    timeout_tests = (ROOT / "tests/test_ci_boundary.py").read_text(encoding="utf-8")
+    require(
+        "terminate_process_group" in timeout_runner
+        and "os.killpg(process.pid, signal.SIGKILL)" in timeout_runner,
+        "xcodebuild timeout must terminate the complete process group",
+        failures,
+    )
+    require(
+        "test_timeout_kills_descendant_after_command_leader_exits" in timeout_tests
+        and "signal.SIGTERM, signal.SIG_IGN" in timeout_tests,
+        "CI boundary tests must cover a signal-resistant xcodebuild descendant",
+        failures,
+    )
+
     try:
         tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).split(b"\0")
         require(not any(b"/xcuserdata/" in path for path in tracked), "xcuserdata must not be tracked", failures)

@@ -1,5 +1,23 @@
 # Changes
 
+## 2026-06-26
+
+- **Timestamp:** 2026-06-26 12:33:34 PDT.
+- **Priority:** CI resource and subprocess containment.
+- **Summary:** Escalate timed-out native tests based on the complete process
+  group rather than returning when only the `xcodebuild` leader exits.
+- **Files:** `scripts/run-xcodebuild.py`, `tests/test_ci_boundary.py`,
+  `scripts/check-baseline.py`, `README.md`, `SECURITY.md`, `VISION.md`,
+  `CHANGES.md`, and `docs/plans/2026-06-26-xcodebuild-descendant-timeout.md`.
+- **Tests:** Both timeout regressions and all 16 policy tests pass; every Make
+  alias passes locally and externally, and the leader-only mutation is rejected.
+- **Findings:** The previous wrapper returned 124 while a child process could
+  remain alive and retain inherited output pipes; hosted macOS also rejects
+  signal-0 group probes, requiring probe-free fixed-grace escalation.
+- **Blockers:** None.
+- **Next action:** Verify the exact hosted macOS XCTest and policy head before
+  merge.
+
 ## 2026-06-21
 
 - Made absolute external Makefile invocations work when the checkout path

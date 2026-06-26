@@ -1,4 +1,5 @@
 import os
+import signal
 import subprocess
 import tempfile
 import time
@@ -130,9 +131,65 @@ class CIBoundaryTests(unittest.TestCase):
                 timeout=5,
             )
 
-            self.assertEqual(completed.returncode, 124)
+            self.assertEqual(completed.returncode, 124, completed.stderr)
             self.assertLess(time.monotonic() - started, 4)
             self.assertIn("timed out after 1 seconds", completed.stderr)
+
+    def test_timeout_kills_descendant_after_command_leader_exits(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            temporary_path = Path(temporary_directory)
+            child_pid_path = temporary_path / "child.pid"
+            fake_xcodebuild = temporary_path / "xcodebuild.py"
+            fake_xcodebuild.write_text(
+                "import os\n"
+                "import signal\n"
+                "import subprocess\n"
+                "import sys\n"
+                "child = subprocess.Popen([sys.executable, '-c', "
+                "'import signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(30)'])\n"
+                "open(os.environ['CHILD_PID_PATH'], 'w').write(str(child.pid))\n"
+                "signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))\n"
+                "child.wait()\n",
+                encoding="utf-8",
+            )
+            environment = os.environ.copy()
+            environment["CHILD_PID_PATH"] = str(child_pid_path)
+            child_pid = None
+            try:
+                completed = subprocess.run(
+                    [
+                        "/usr/bin/python3",
+                        str(ROOT / "scripts/run-xcodebuild.py"),
+                        "1",
+                        "/usr/bin/python3",
+                        str(fake_xcodebuild),
+                    ],
+                    cwd=ROOT,
+                    env=environment,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=6,
+                )
+                child_pid = int(child_pid_path.read_text(encoding="utf-8"))
+
+                self.assertEqual(completed.returncode, 124)
+                deadline = time.monotonic() + 2
+                while True:
+                    try:
+                        os.kill(child_pid, 0)
+                    except ProcessLookupError:
+                        break
+                    if time.monotonic() >= deadline:
+                        self.fail("xcodebuild descendant survived timeout cleanup")
+                    time.sleep(0.05)
+            finally:
+                if child_pid is None and child_pid_path.exists():
+                    child_pid = int(child_pid_path.read_text(encoding="utf-8"))
+                if child_pid is not None:
+                    try:
+                        os.kill(child_pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
 
 
 if __name__ == "__main__":

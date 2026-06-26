@@ -16,7 +16,7 @@ that binary integration.
 - `scripts/run-tests.sh` removes legacy provider variables before spawning
   `xcodebuild`, rejects symlinked/out-of-repository project overrides, and never
   archives, signs, retries, or uploads an artifact. A bounded process-group
-  deadline terminates hung simulator or build subprocesses.
+  deadline escalates from `SIGTERM` to `SIGKILL` until descendants are stopped.
 - Historical Fabric credentials must be treated as compromised even though no
   values remain in the current tree.
 
