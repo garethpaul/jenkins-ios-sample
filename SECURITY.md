@@ -81,6 +81,9 @@ Helpful reports include:
 - Hosted XCTest selects one simulator by UDID, waits for an explicit bounded
   boot with one recovery attempt, and disables parallel workers without
   skipping any validation cases.
+- The native test deadline owns the complete `xcodebuild` process group,
+  escalating from `SIGTERM` to `SIGKILL` so a signal-resistant descendant
+  cannot survive CI or retain inherited output pipes.
 - Signing identities, provisioning profiles, `.env` files, local xcconfig files,
   and replacement provider credentials must stay out of git.
 - Historical credentials and retired binaries may remain visible in git history.

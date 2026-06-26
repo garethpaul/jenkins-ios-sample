@@ -9,6 +9,7 @@ Priorities:
 - keep GitHub Actions read-only, secret-free, and unsigned
 - prevent shell build phases, signing, archives, uploads, and vendored provider binaries
 - retain focused hostile tests for subprocess environment and path boundaries
+- terminate the entire native test process group when its bounded deadline expires
 - document historical credential exposure without reproducing secret values
 
 Any future crash-reporting integration must use a supported SDK, disclose its

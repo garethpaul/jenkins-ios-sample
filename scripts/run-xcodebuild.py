@@ -5,6 +5,26 @@ import os
 import signal
 import subprocess
 import sys
+import time
+
+
+def terminate_process_group(process, grace_seconds):
+    grace_deadline = time.monotonic() + grace_seconds
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=grace_seconds)
+    except subprocess.TimeoutExpired:
+        pass
+    remaining_grace = grace_deadline - time.monotonic()
+    if remaining_grace > 0:
+        time.sleep(remaining_grace)
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except (PermissionError, ProcessLookupError):
+        pass
 
 
 def main(arguments):
@@ -29,12 +49,8 @@ def main(arguments):
         return process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         print("xcodebuild timed out after {} seconds.".format(timeout), file=sys.stderr)
-        os.killpg(process.pid, signal.SIGTERM)
-        try:
-            process.wait(timeout=2)
-        except subprocess.TimeoutExpired:
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
+        terminate_process_group(process, 2)
+        process.wait()
         return 124
 
 
